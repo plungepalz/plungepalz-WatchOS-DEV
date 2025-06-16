@@ -1,0 +1,671 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		ACAC69042DF15E5900BFA6A7 /* PlungePalz Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = ACAC69032DF15E5900BFA6A7 /* PlungePalz Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		ACAC69052DF15E5900BFA6A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ACAC68F72DF15E5900BFA6A7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ACAC69022DF15E5900BFA6A7;
+			remoteInfo = "PlungePalz Watch App";
+		};
+		ACAC69132DF15E5A00BFA6A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ACAC68F72DF15E5900BFA6A7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ACAC69022DF15E5900BFA6A7;
+			remoteInfo = "PlungePalz Watch App";
+		};
+		ACAC691D2DF15E5A00BFA6A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ACAC68F72DF15E5900BFA6A7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ACAC69022DF15E5900BFA6A7;
+			remoteInfo = "PlungePalz Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		ACAC69292DF15E5A00BFA6A7 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				ACAC69042DF15E5900BFA6A7 /* PlungePalz Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		ACAC68FD2DF15E5900BFA6A7 /* PlungePalz.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlungePalz.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ACAC69032DF15E5900BFA6A7 /* PlungePalz Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PlungePalz Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		ACAC69122DF15E5A00BFA6A7 /* PlungePalz Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "PlungePalz Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		ACAC691C2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "PlungePalz Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		ACAC69072DF15E5900BFA6A7 /* PlungePalz Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "PlungePalz Watch App";
+			sourceTree = "<group>";
+		};
+		ACAC69152DF15E5A00BFA6A7 /* PlungePalz Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "PlungePalz Watch AppTests";
+			sourceTree = "<group>";
+		};
+		ACAC691F2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "PlungePalz Watch AppUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		ACAC69002DF15E5900BFA6A7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACAC690F2DF15E5A00BFA6A7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACAC69192DF15E5A00BFA6A7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		ACAC68F62DF15E5900BFA6A7 = {
+			isa = PBXGroup;
+			children = (
+				ACAC69072DF15E5900BFA6A7 /* PlungePalz Watch App */,
+				ACAC69152DF15E5A00BFA6A7 /* PlungePalz Watch AppTests */,
+				ACAC691F2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests */,
+				ACAC68FE2DF15E5900BFA6A7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		ACAC68FE2DF15E5900BFA6A7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				ACAC68FD2DF15E5900BFA6A7 /* PlungePalz.app */,
+				ACAC69032DF15E5900BFA6A7 /* PlungePalz Watch App.app */,
+				ACAC69122DF15E5A00BFA6A7 /* PlungePalz Watch AppTests.xctest */,
+				ACAC691C2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		ACAC68FC2DF15E5900BFA6A7 /* PlungePalz */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ACAC692A2DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz" */;
+			buildPhases = (
+				ACAC68FB2DF15E5900BFA6A7 /* Resources */,
+				ACAC69292DF15E5A00BFA6A7 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ACAC69062DF15E5900BFA6A7 /* PBXTargetDependency */,
+			);
+			name = PlungePalz;
+			packageProductDependencies = (
+			);
+			productName = PlungePalz;
+			productReference = ACAC68FD2DF15E5900BFA6A7 /* PlungePalz.app */;
+			productType = "com.apple.product-type.application.watchapp2-container";
+		};
+		ACAC69022DF15E5900BFA6A7 /* PlungePalz Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ACAC69262DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz Watch App" */;
+			buildPhases = (
+				ACAC68FF2DF15E5900BFA6A7 /* Sources */,
+				ACAC69002DF15E5900BFA6A7 /* Frameworks */,
+				ACAC69012DF15E5900BFA6A7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				ACAC69072DF15E5900BFA6A7 /* PlungePalz Watch App */,
+			);
+			name = "PlungePalz Watch App";
+			packageProductDependencies = (
+			);
+			productName = "PlungePalz Watch App";
+			productReference = ACAC69032DF15E5900BFA6A7 /* PlungePalz Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		ACAC69112DF15E5A00BFA6A7 /* PlungePalz Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ACAC692D2DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz Watch AppTests" */;
+			buildPhases = (
+				ACAC690E2DF15E5A00BFA6A7 /* Sources */,
+				ACAC690F2DF15E5A00BFA6A7 /* Frameworks */,
+				ACAC69102DF15E5A00BFA6A7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ACAC69142DF15E5A00BFA6A7 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				ACAC69152DF15E5A00BFA6A7 /* PlungePalz Watch AppTests */,
+			);
+			name = "PlungePalz Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "PlungePalz Watch AppTests";
+			productReference = ACAC69122DF15E5A00BFA6A7 /* PlungePalz Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		ACAC691B2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ACAC69302DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz Watch AppUITests" */;
+			buildPhases = (
+				ACAC69182DF15E5A00BFA6A7 /* Sources */,
+				ACAC69192DF15E5A00BFA6A7 /* Frameworks */,
+				ACAC691A2DF15E5A00BFA6A7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ACAC691E2DF15E5A00BFA6A7 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				ACAC691F2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests */,
+			);
+			name = "PlungePalz Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "PlungePalz Watch AppUITests";
+			productReference = ACAC691C2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		ACAC68F72DF15E5900BFA6A7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					ACAC68FC2DF15E5900BFA6A7 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					ACAC69022DF15E5900BFA6A7 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					ACAC69112DF15E5A00BFA6A7 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = ACAC69022DF15E5900BFA6A7;
+					};
+					ACAC691B2DF15E5A00BFA6A7 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = ACAC69022DF15E5900BFA6A7;
+					};
+				};
+			};
+			buildConfigurationList = ACAC68FA2DF15E5900BFA6A7 /* Build configuration list for PBXProject "PlungePalz" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = ACAC68F62DF15E5900BFA6A7;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = ACAC68FE2DF15E5900BFA6A7 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				ACAC68FC2DF15E5900BFA6A7 /* PlungePalz */,
+				ACAC69022DF15E5900BFA6A7 /* PlungePalz Watch App */,
+				ACAC69112DF15E5A00BFA6A7 /* PlungePalz Watch AppTests */,
+				ACAC691B2DF15E5A00BFA6A7 /* PlungePalz Watch AppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		ACAC68FB2DF15E5900BFA6A7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACAC69012DF15E5900BFA6A7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACAC69102DF15E5A00BFA6A7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACAC691A2DF15E5A00BFA6A7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		ACAC68FF2DF15E5900BFA6A7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACAC690E2DF15E5A00BFA6A7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACAC69182DF15E5A00BFA6A7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		ACAC69062DF15E5900BFA6A7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ACAC69022DF15E5900BFA6A7 /* PlungePalz Watch App */;
+			targetProxy = ACAC69052DF15E5900BFA6A7 /* PBXContainerItemProxy */;
+		};
+		ACAC69142DF15E5A00BFA6A7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ACAC69022DF15E5900BFA6A7 /* PlungePalz Watch App */;
+			targetProxy = ACAC69132DF15E5A00BFA6A7 /* PBXContainerItemProxy */;
+		};
+		ACAC691E2DF15E5A00BFA6A7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ACAC69022DF15E5900BFA6A7 /* PlungePalz Watch App */;
+			targetProxy = ACAC691D2DF15E5A00BFA6A7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		ACAC69242DF15E5A00BFA6A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		ACAC69252DF15E5A00BFA6A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		ACAC69272DF15E5A00BFA6A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PlungePalz;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = watch.PlungePalz.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Debug;
+		};
+		ACAC69282DF15E5A00BFA6A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PlungePalz;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = watch.PlungePalz.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Release;
+		};
+		ACAC692B2DF15E5A00BFA6A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				INFOPLIST_KEY_CFBundleDisplayName = PlungePalz;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = watch.PlungePalz;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		ACAC692C2DF15E5A00BFA6A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				INFOPLIST_KEY_CFBundleDisplayName = PlungePalz;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = watch.PlungePalz;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		ACAC692E2DF15E5A00BFA6A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "watch.PlungePalz-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PlungePalz Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PlungePalz Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Debug;
+		};
+		ACAC692F2DF15E5A00BFA6A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "watch.PlungePalz-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PlungePalz Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PlungePalz Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Release;
+		};
+		ACAC69312DF15E5A00BFA6A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "watch.PlungePalz-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "PlungePalz Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Debug;
+		};
+		ACAC69322DF15E5A00BFA6A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GWQ34U4XAK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "watch.PlungePalz-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "PlungePalz Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		ACAC68FA2DF15E5900BFA6A7 /* Build configuration list for PBXProject "PlungePalz" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ACAC69242DF15E5A00BFA6A7 /* Debug */,
+				ACAC69252DF15E5A00BFA6A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ACAC69262DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ACAC69272DF15E5A00BFA6A7 /* Debug */,
+				ACAC69282DF15E5A00BFA6A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ACAC692A2DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ACAC692B2DF15E5A00BFA6A7 /* Debug */,
+				ACAC692C2DF15E5A00BFA6A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ACAC692D2DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ACAC692E2DF15E5A00BFA6A7 /* Debug */,
+				ACAC692F2DF15E5A00BFA6A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ACAC69302DF15E5A00BFA6A7 /* Build configuration list for PBXNativeTarget "PlungePalz Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ACAC69312DF15E5A00BFA6A7 /* Debug */,
+				ACAC69322DF15E5A00BFA6A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = ACAC68F72DF15E5900BFA6A7 /* Project object */;
+}
