@@ -238,6 +238,84 @@ struct WatchGlobalUIConfig {
 
     }
 
+    // ==== 5. SetTemperatureScreen ====
+    struct SetTemperatureScreen {
+        
+        // Header Assets
+        static func headerIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 20
+            case .regular: return 24
+            case .ultra: return 28
+            }
+        }
+        static func headerTitleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        // Temperature Values Assets
+        static func valuesFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 24
+            case .regular: return 24
+            case .ultra: return 24
+            }
+        }
+
+        static func labelFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 14
+            case .ultra: return 14
+            }
+        }
+
+        static func valuesContainerWidthUnitAndDecimal(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 42
+            case .regular: return 42
+            case .ultra: return 46
+            }
+        }
+
+        static func valuesContainerWidthWholeNumber(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 54
+            case .regular: return 54
+            case .ultra: return 56
+            }
+        }
+
+        static func pickerContainerPaddingTrailing(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 4
+            case .regular: return 4
+            case .ultra: return 4
+            }
+        }
+
+        static func valuesContainerGap(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 4
+            case .regular: return 4
+            case .ultra: return 0
+            }
+        }
+
+        static func labelWidth(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 32
+            case .regular: return 32
+            case .ultra: return 40
+            }
+        }
+
+    }
+
 
     // Add more nested structs for other screens as needed...
 } 

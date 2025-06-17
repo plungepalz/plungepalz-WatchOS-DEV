@@ -132,19 +132,6 @@ struct SetTimerScreen: View {
     }
 }
 
-// Helper to detect onChange for @State bindings
-extension Binding {
-    func onChange(_ handler: @escaping (Value) -> Void) -> Binding<Value> {
-        Binding(
-            get: { self.wrappedValue },
-            set: { newValue in
-                self.wrappedValue = newValue
-                handler(newValue)
-            }
-        )
-    }
-}
-
 #Preview {
     SetTimerScreen(navigationManager: NavigationManager())
 } 
