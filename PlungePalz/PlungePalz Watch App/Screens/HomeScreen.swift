@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
+    @EnvironmentObject var sessionDataManager: SessionDataManager
     
     // Placeholder for connection status
     enum ConnectionStatus {
@@ -113,6 +114,7 @@ struct HomeScreen: View {
         let plungeButtonHorizontalPadding = WatchGlobalUIConfig.HomeScreen.plungeButtonHorizontalPadding(for: screenSize)
         let plungeButtonVerticalPadding = WatchGlobalUIConfig.HomeScreen.plungeButtonVerticalPadding(for: screenSize)
         let bottomLogoSpacing = WatchGlobalUIConfig.HomeScreen.bottomLogoSpacing(for: screenSize)
+        let middleContainerPaddingTrailing = WatchGlobalUIConfig.HomeScreen.middleContainerPaddingTrailing(for: screenSize)
 
         // Bottom Container Assets
         let bottomContainerLogoSize = WatchGlobalUIConfig.HomeScreen.bottomContainerLogoSize(for: screenSize)
@@ -182,6 +184,7 @@ struct HomeScreen: View {
                     .padding(.horizontal, plungeButtonHorizontalPadding)
                     .background(Color.black)
                     .clipShape(RoundedRectangle(cornerRadius: plungeButtonCornerRadius))
+                    .padding(.trailing, middleContainerPaddingTrailing)
                     .onTapGesture {
                         switch connectionStatus {
                         case .connecting:
@@ -225,9 +228,24 @@ struct HomeScreen: View {
         .onAppear {
             simulateConnection()
         }
+        .onChange(of: connectionStatus) { newStatus in
+            if newStatus == .connected {
+                sessionDataManager.fetchLastSessionData()
+            }
+        }
     }
 }
 
 #Preview {
-    HomeScreen(navigationManager: NavigationManager())
+    let previewManager: SessionDataManager = {
+        let manager = SessionDataManager()
+        manager.lastSessionData = [
+            "lastSessionTimeSet": "3:15",
+            "lastSessionWaterTemp": "45.5",
+            "unitOfMeasure": "Imperial"
+        ]
+        return manager
+    }()
+    return HomeScreen(navigationManager: NavigationManager())
+        .environmentObject(previewManager)
 } 

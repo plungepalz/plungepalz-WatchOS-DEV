@@ -8,10 +8,12 @@
 import SwiftUI
 
 @main
-struct PlungePalz_Watch_AppApp: App {
+struct PlungePalzApp: App {
+    @StateObject var sessionDataManager = SessionDataManager()
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeScreen(navigationManager: NavigationManager())
+                .environmentObject(sessionDataManager)
         }
     }
 }
