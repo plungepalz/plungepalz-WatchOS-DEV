@@ -65,10 +65,12 @@ struct SetTemperatureScreen: View {
         let valuesContainerWidthWholeNumber = WatchGlobalUIConfig.SetTemperatureScreen.valuesContainerWidthWholeNumber(for: screenSize)
         let pickerContainerPaddingTrailing = WatchGlobalUIConfig.SetTemperatureScreen.pickerContainerPaddingTrailing(for: screenSize)
         let valuesContainerGap = WatchGlobalUIConfig.SetTemperatureScreen.valuesContainerGap(for: screenSize)
+        let buttonTopPadding = WatchGlobalUIConfig.SetTemperatureScreen.buttonTopPadding(for: screenSize)
+        let buttonInternalTopPadding = WatchGlobalUIConfig.SetTemperatureScreen.buttonInternalTopPadding(for: screenSize)
 
-        VStack(spacing: 18) {
+        VStack(spacing: 0) {
             // Header
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: "thermometer.snowflake")
                     .font(.system(size: headerIconSize, weight: .bold))
                     .foregroundStyle(.white)
@@ -76,13 +78,13 @@ struct SetTemperatureScreen: View {
                     .font(.system(size: headerTitleFontSize, weight: .bold))
                     .foregroundStyle(.white)
             }
-            .padding(.top, 4)
+            .padding(.bottom, 8)
 
             // Pickers
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.white.opacity(0.2))
-                    .frame(height: valuesContainerWidthUnitAndDecimal)
+                    .frame(height: 28)
                 HStack(alignment: .center, spacing: valuesContainerGap) {
                     // Unit Picker
                     Picker(selection: $selectedUnitIndex.onChange { newIndex in
@@ -171,12 +173,13 @@ struct SetTemperatureScreen: View {
                         .foregroundColor(.white)
                     Spacer(minLength: 0)
                 }
-                .padding(.vertical, 12)
+                .padding(.vertical, buttonInternalTopPadding)
                 .background(Color.blue.opacity(0.7))
                 .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 12)
+            .padding(.bottom, 6)
+            .padding(.top, buttonTopPadding)
         }
         .background(Color.black.ignoresSafeArea())
         .environment(\.watchScreenSize, screenManager.currentScreenSize)

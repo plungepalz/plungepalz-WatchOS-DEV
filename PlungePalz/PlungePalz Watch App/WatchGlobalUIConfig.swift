@@ -181,7 +181,7 @@ struct WatchGlobalUIConfig {
         }
         static func headerTitleFontSize(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 18
+            case .small: return 16
             case .regular: return 18
             case .ultra: return 20
             }
@@ -190,15 +190,15 @@ struct WatchGlobalUIConfig {
         // Time Values Assets
         static func valuesFontSize(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 24
-            case .regular: return 24
+            case .small: return 20
+            case .regular: return 22
             case .ultra: return 24
             }
         }
 
         static func labelFontSize(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 14
+            case .small: return 12
             case .regular: return 14
             case .ultra: return 14
             }
@@ -206,24 +206,24 @@ struct WatchGlobalUIConfig {
 
         static func valuesContainerWidth(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 60
-            case .regular: return 60
+            case .small: return 42
+            case .regular: return 44
             case .ultra: return 46
             }
         }
 
         static func valuesContainerXOffest(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 0
-            case .regular: return 0
+            case .small: return 15
+            case .regular: return 20
             case .ultra: return 20
             }
         }
 
         static func valuesContainerGap(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 4
-            case .regular: return 4
+            case .small: return 0
+            case .regular: return 0
             case .ultra: return 0
             }
         }
@@ -235,6 +235,24 @@ struct WatchGlobalUIConfig {
             case .ultra: return 40
             }
         }
+
+        static func buttonTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 6
+            case .regular: return 12
+            case .ultra: return 12
+            }
+        }
+
+        static func buttonInternalTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 8
+            case .regular: return 10
+            case .ultra: return 11
+            }
+        }
+
+
 
     }
 
@@ -314,6 +332,148 @@ struct WatchGlobalUIConfig {
             }
         }
 
+        static func buttonTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 2
+            case .regular: return 12
+            case .ultra: return 12
+            }
+        }
+
+        static func buttonInternalTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 8
+            case .regular: return 10
+            case .ultra: return 11
+            }
+        }
+
+    }
+
+    // ==== 6. CountdownActivatedScreen ====
+    struct CountdownActivatedScreen {
+
+        // Top Corner Padding for Lock Icon
+        static func lockIconTopCornerPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 8
+            case .regular: return 12
+            case .ultra: return 14
+            }
+        }
+
+        // Sectional Container Paddings
+        static func topPaddingTimer(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 65
+            case .regular: return 95
+            case .ultra: return 115
+            }
+        }
+
+        static func topPaddingTempText(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return -2
+            case .ultra: return 0
+            }
+        }
+        static func topPaddingForProgressContainer(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 26
+            case .regular: return 32
+            case .ultra: return 32
+            }
+        }
+
+        static func timerFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 44
+            case .regular: return 44
+            case .ultra: return 50
+            }
+        }
+
+        static func temperatureFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 22
+            case .regular: return 22
+            case .ultra: return 26
+            }
+        }
+
+        static func temperatureIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 20
+            case .ultra: return 24
+            }
+        }
+
+        static func progressBarHeight(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 8
+            case .regular: return 8
+            case .ultra: return 8
+            }
+        }
+
+        static func paddingBetweenHeartRateAndBarChart(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 5
+            case .ultra: return 5
+            }
+        }
+
+        // Divider Line Padding Assets
+        static func dividerLine1TopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return -2
+            case .ultra: return -5
+            }
+        }
+
+        static func dividerLine1BottomPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 5
+            case .ultra: return 5
+            }
+        }
+
+        static func dividerLine2TopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 0
+            case .ultra: return 5
+            }
+        }
+
+        static func dividerLine2BottomPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 0
+            case .ultra: return 0
+            }
+        }
+
+        static func dividerLine3TopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 5
+            case .ultra: return 5
+            }
+        }
+
+        static func dividerLine3BottomPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 5
+            case .ultra: return 5
+            }
+        }
     }
 
 

@@ -24,7 +24,8 @@ struct ContentView: View {
             case .setTemperature:
                 SetTemperatureScreen(navigationManager: navigationManager)
             case .countdownActivated:
-                CountdownActivatedScreen(navigationManager: navigationManager)
+                let source: CountdownActivatedScreen.NavigationSource = navigationManager.previousScreen == .selectSession ? .selectSession : .setTemperature
+                CountdownActivatedScreen(navigationManager: navigationManager, navigationSource: source)
             case .activityStoppedOrPaused:
                 ActivityStoppedOrPausedScreen(navigationManager: navigationManager)
             case .sessionRecap:

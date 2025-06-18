@@ -47,8 +47,10 @@ enum AppScreen: Int, CaseIterable {
 // MARK: - Navigation Manager
 class NavigationManager: ObservableObject {
     @Published var currentScreen: AppScreen = .home
+    @Published var previousScreen: AppScreen = .home
     
     func nextScreen() {
+        previousScreen = currentScreen
         let currentIndex = currentScreen.rawValue
         if currentIndex < AppScreen.allCases.count {
             currentScreen = AppScreen(rawValue: currentIndex + 1) ?? .home
@@ -58,7 +60,8 @@ class NavigationManager: ObservableObject {
         }
     }
     
-    func previousScreen() {
+    func goToPreviousScreen() {
+        previousScreen = currentScreen
         let currentIndex = currentScreen.rawValue
         if currentIndex > 1 {
             currentScreen = AppScreen(rawValue: currentIndex - 1) ?? .home
@@ -66,10 +69,12 @@ class NavigationManager: ObservableObject {
     }
     
     func goToHome() {
+        previousScreen = currentScreen
         currentScreen = .home
     }
     
     func goToScreen(_ screen: AppScreen) {
+        previousScreen = currentScreen
         currentScreen = screen
     }
 } 

@@ -29,14 +29,16 @@ struct SessionRecapScreen: View {
             
             // Navigation buttons
             HStack(spacing: 8) {
-                Button("Back") {
-                    navigationManager.previousScreen()
+                Button(action: {
+                    navigationManager.goToPreviousScreen()
+                }) {
+                    Text("Back")
+                        .frame(height: WatchUIConfig(for: screenManager.currentScreenSize).buttonHeight)
+                        .frame(maxWidth: .infinity)
+                        .background(.gray)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .frame(height: WatchUIConfig(for: screenManager.currentScreenSize).buttonHeight)
-                .frame(maxWidth: .infinity)
-                .background(.gray)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
                 
                 Button("Home") {
                     navigationManager.nextScreen() // This will go back to home

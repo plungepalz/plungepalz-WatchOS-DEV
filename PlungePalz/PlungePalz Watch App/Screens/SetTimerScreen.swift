@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SetTimerScreen: View {
+    @EnvironmentObject var sessionDataManager: SessionDataManager
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
     
@@ -20,6 +21,10 @@ struct SetTimerScreen: View {
     }
     
     let range = 0...59
+    
+    private func formatTimeString() -> String {
+        return String(format: "%d:%02d", selectedMinute, selectedSecond)
+    }
     
     var body: some View {
 
@@ -38,10 +43,12 @@ struct SetTimerScreen: View {
         let valuesContainerXOffest = WatchGlobalUIConfig.SetTimerScreen.valuesContainerXOffest(for: screenSize)
         let valuesContainerGap = WatchGlobalUIConfig.SetTimerScreen.valuesContainerGap(for: screenSize)
         let labelWidth = WatchGlobalUIConfig.SetTimerScreen.labelWidth(for: screenSize)
+        let buttonTopPadding = WatchGlobalUIConfig.SetTimerScreen.buttonTopPadding(for: screenSize)
+        let buttonInternalTopPadding = WatchGlobalUIConfig.SetTimerScreen.buttonInternalTopPadding(for: screenSize)
 
-        VStack(spacing: 18) {
+        VStack(spacing: 0) {
             // Header
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: "timer")
                     .font(.system(size: headerIconSize, weight: .bold))
                     .foregroundStyle(.white)
@@ -49,7 +56,7 @@ struct SetTimerScreen: View {
                     .font(.system(size: headerTitleFontSize, weight: .bold))
                     .foregroundStyle(.white)
             }
-            .padding(.top, 4)
+            .padding(.bottom, 8)
             
             // Timer Pickers
             ZStack {
@@ -107,6 +114,11 @@ struct SetTimerScreen: View {
             
             // NEXT button
             Button(action: {
+                // Store the selected time in SessionDataManager
+                if sessionDataManager.lastSessionData == nil {
+                    sessionDataManager.lastSessionData = [:]
+                }
+                sessionDataManager.lastSessionData?["lastSessionTimeSet"] = formatTimeString()
                 navigationManager.nextScreen()
             }) {
                 HStack {
@@ -119,12 +131,13 @@ struct SetTimerScreen: View {
                         .foregroundColor(.white)
                     Spacer(minLength: 0)
                 }
-                .padding(.vertical, 12)
+                .padding(.vertical, buttonInternalTopPadding)
                 .background(Color.blue.opacity(0.7))
                 .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 12)
+            .padding(.bottom, 6)
+            .padding(.top, buttonTopPadding)
             
         }
         .background(Color.black.ignoresSafeArea())
@@ -134,4 +147,5 @@ struct SetTimerScreen: View {
 
 #Preview {
     SetTimerScreen(navigationManager: NavigationManager())
+        .environmentObject(SessionDataManager())
 } 

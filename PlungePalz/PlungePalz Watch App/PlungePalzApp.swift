@@ -12,7 +12,7 @@ struct PlungePalzApp: App {
     @StateObject var sessionDataManager = SessionDataManager()
     var body: some Scene {
         WindowGroup {
-            HomeScreen(navigationManager: NavigationManager())
+            ContentView()
                 .environmentObject(sessionDataManager)
         }
     }

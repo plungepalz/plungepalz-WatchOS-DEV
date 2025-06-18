@@ -8,7 +8,7 @@ class SessionDataManager: ObservableObject {
         // Simulate API call
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.lastSessionData = [
-                "lastSessionTimeSet": "3:15",
+                "lastSessionTimeSet": "10:40",
                 "lastSessionWaterTemp": "45.5",
                 "unitOfMeasure": "Imperial"
             ]
