@@ -14,9 +14,11 @@ enum AppScreen: Int, CaseIterable {
     case selectSession = 3
     case setTimer = 4
     case setTemperature = 5
-    case countdownActivated = 6
-    case activityStoppedOrPaused = 7
-    case sessionRecap = 8
+    case prepareCountdown = 6
+    case countdownActivated = 7
+    case activityStoppedOrPaused = 8
+    case sessionDeleted = 9
+    case sessionRecap = 10
     
     var title: String {
         switch self {
@@ -30,10 +32,14 @@ enum AppScreen: Int, CaseIterable {
             return "Set Timer"
         case .setTemperature:
             return "Set Temperature"
+        case .prepareCountdown:
+            return "Prepare Countdown"
         case .countdownActivated:
             return "Countdown Activated"
         case .activityStoppedOrPaused:
             return "Activity Stopped/Paused"
+        case .sessionDeleted:
+            return "Session Deleted"
         case .sessionRecap:
             return "Session Recap"
         }

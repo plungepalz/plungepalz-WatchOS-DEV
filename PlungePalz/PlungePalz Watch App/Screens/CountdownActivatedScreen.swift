@@ -6,35 +6,41 @@
 //
 
 import SwiftUI
-import Combine
+import WatchKit
 
 struct CountdownActivatedScreen: View {
-    @EnvironmentObject var sessionDataManager: SessionDataManager
-    @StateObject private var screenManager = WatchScreenManager()
+    // MARK: - Navigation
     @ObservedObject var navigationManager: NavigationManager
-    
-    // Add navigation source tracking
     let navigationSource: NavigationSource
     
+    // MARK: - Session Data
+    @EnvironmentObject var sessionDataManager: SessionDataManager
+    
+    // MARK: - Screen Management
+    @StateObject private var screenManager = WatchScreenManager()
+    
+    // MARK: - Water Lock Management
+    @StateObject private var waterLockManager = WaterLockManager.shared
+    
+    // MARK: - Timer State
+    @State private var timer: Timer?
+    @State private var timerValue: Int = 0
+    @State private var totalDuration: Int = 0
+    @State private var isCountingUp: Bool = false
+    @State private var didPlayNotification: Bool = false
+    
+    // MARK: - Heart Rate State
+    @State private var heartRate: Int?
+    @State private var heartRateTimer: Timer?
+    
+    // MARK: - Progress Bar State
+    @State private var showFlagBounce: [Bool] = [false, false, false, false, false]
+
+    // Add navigation source tracking
     enum NavigationSource {
         case selectSession
         case setTemperature
     }
-
-    // Timer State
-    @State private var timerValue: Int = 0 // seconds remaining (negative for countup)
-    @State private var isCountingUp: Bool = false
-    @State private var timer: Timer? = nil
-    @State private var totalDuration: Int = 40 // default 0:40
-    @State private var showFlagBounce: [Bool] = [false, false, false, false]
-    @State private var didPlayNotification = false
-
-    // Heart Rate State
-    @State private var heartRate: Int? = 105 // Simulated value for now
-    @State private var heartRateTimer: Timer? = nil
-
-    // Lock State
-    @State private var isLocked: Bool = true
 
     // Progress Bar
     private let flagCheckpoints: [CGFloat] = [0.25, 0.5, 0.75, 1.0]
@@ -123,47 +129,33 @@ struct CountdownActivatedScreen: View {
         if isCountingUp { return 1.0 }
         return 1.0 - CGFloat(timerValue) / CGFloat(totalDuration)
     }
-
-    // MARK: - Touch Lock
-    private func lockOverlay(lockIconTopCornerPadding: CGFloat) -> some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .onTapGesture { }
-            .allowsHitTesting(true)
-            .overlay(
-                VStack {
-                    HStack {
-                        Image(systemName: "lock.fill")
-                            .foregroundColor(.white)
-                            .padding([.top, .leading], lockIconTopCornerPadding)
-                        Spacer()
-                    }
-                    Spacer()
-                }
-            )
-    }
-
-    // MARK: - Hardware Button Handling
-    private func setupHardwareButtonHandlers() {
-        // NOTE: Actual hardware button handling is limited in SwiftUI/watchOS.
-        // For a real app, use WKInterfaceController's crown/side button events in a WKInterfaceController-based app.
-        // Here, we simulate with a long press gesture for demo/testing.
+    
+    private func handleStopSession() {
+        print("Session stopped via gesture")
+        // Set epic time (if in countup mode, it's timerValue; else 0)
+        sessionDataManager.epicTime = isCountingUp ? timerValue : 0
+        // Stop timers
+        timer?.invalidate()
+        heartRateTimer?.invalidate()
+        // Navigate to pause screen (same as pause for now)
+        navigationManager.goToScreen(.activityStoppedOrPaused)
     }
 
     // MARK: - Body
     var body: some View {
         // UI Config
         let screenSize = screenManager.currentScreenSize
+        let screenHeight = WKInterfaceDevice.current().screenBounds.height
 
         // UI Config Variables
-        let lockIconTopCornerPadding = WatchGlobalUIConfig.CountdownActivatedScreen.lockIconTopCornerPadding(for: screenSize)
+        let stopIconTopCornerPadding = WatchGlobalUIConfig.CountdownActivatedScreen.stopIconTopCornerPadding(for: screenSize)
+        let stopIconSize = WatchGlobalUIConfig.CountdownActivatedScreen.stopIconSize(for: screenSize)
         let topPaddingTimer = WatchGlobalUIConfig.CountdownActivatedScreen.topPaddingTimer(for: screenSize)
         let topPaddingTempText = WatchGlobalUIConfig.CountdownActivatedScreen.topPaddingTempText(for: screenSize)
         let topPaddingForProgressContainer = WatchGlobalUIConfig.CountdownActivatedScreen.topPaddingForProgressContainer(for: screenSize)
         let timerFontSize = WatchGlobalUIConfig.CountdownActivatedScreen.timerFontSize(for: screenSize)
         let temperatureFontSize = WatchGlobalUIConfig.CountdownActivatedScreen.temperatureFontSize(for: screenSize)
         let temperatureIconSize = WatchGlobalUIConfig.CountdownActivatedScreen.temperatureIconSize(for: screenSize)
-        let progressBarHeight = WatchGlobalUIConfig.CountdownActivatedScreen.progressBarHeight(for: screenSize)
         let dividerLine1TopPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine1TopPadding(for: screenSize)
         let dividerLine1BottomPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine1BottomPadding(for: screenSize)
         let dividerLine2TopPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine2TopPadding(for: screenSize)
@@ -234,15 +226,22 @@ struct CountdownActivatedScreen: View {
                                     let icon = flagIcons[idx]
                                     let customValue: CGFloat = (icon == "flag") ? 2 : (icon == "flag.checkered" ? -1 : 0)
                                     let x = barWidth * flagCheckpoints[idx] + customValue
-                                    Image(systemName: icon)
-                                        .foregroundColor(progressFraction() >= flagCheckpoints[idx] ? progressGreen : progressGray)
-                                        .symbolEffect(
-                                            .bounce.up.byLayer,
-                                            options: .nonRepeating,
-                                            value: showFlagBounce[idx]
-                                        )
-                                        .frame(width: 20, height: 20)
-                                        .offset(x: x - 10, y: -16)
+                                    if #available(watchOS 10.0, *) {
+                                        Image(systemName: icon)
+                                            .foregroundColor(progressFraction() >= flagCheckpoints[idx] ? progressGreen : progressGray)
+                                            .symbolEffect(
+                                                .bounce.up.byLayer,
+                                                options: .nonRepeating,
+                                                value: showFlagBounce[idx]
+                                            )
+                                            .frame(width: 20, height: 20)
+                                            .offset(x: x - 10, y: -16)
+                                    } else {
+                                        Image(systemName: icon)
+                                            .foregroundColor(progressFraction() >= flagCheckpoints[idx] ? progressGreen : progressGray)
+                                            .frame(width: 20, height: 20)
+                                            .offset(x: x - 10, y: -16)
+                                    }
                                 }
                             }, alignment: .leading
                         )
@@ -261,9 +260,14 @@ struct CountdownActivatedScreen: View {
                     // Heart Rate
                     HStack(spacing: 8) {
                         if let hr = heartRate {
-                            Image(systemName: "heart.fill")
-                                .foregroundColor(.red)
-                                .symbolEffect(.breathe.pulse.byLayer, options: .repeat(.continuous))
+                            if #available(watchOS 11.0, *) {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(.red)
+                                    .symbolEffect(.breathe.pulse.byLayer, options: .repeat(.continuous))
+                            } else {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(.red)
+                            }
                             Text("\(hr) BPM")
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.white)
@@ -297,24 +301,78 @@ struct CountdownActivatedScreen: View {
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
 
-                // Lock overlay
-                if isLocked {
-                    lockOverlay(lockIconTopCornerPadding: lockIconTopCornerPadding)
+                // Stop button overlay in top-left corner
+                VStack {
+                    HStack {
+                        Button(action: {
+                            print("Stop button tapped")
+                            handleStopSession()
+                        }) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: stopIconSize, weight: .medium))
+                                .foregroundColor(waterLockManager.shouldDisableStopButton ? .gray : .red)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(waterLockManager.shouldDisableStopButton)
+                        .padding(.top, stopIconTopCornerPadding)
+                        .padding(.leading, stopIconTopCornerPadding)
+                        
+                        Spacer()
+                    }
+                    Spacer()
                 }
             }
             .ignoresSafeArea()
             .onAppear {
+                // Only reset session tracking if we don't have any existing session data
+                // This prevents resetting when continuing from a paused session
+                if sessionDataManager.accumulatedSessionTime == 0 && sessionDataManager.HRArray.isEmpty {
+                    // This is a completely new session
+                    sessionDataManager.resetSessionTracking()
+                    // Set the original countdown time for new sessions
+                    sessionDataManager.originalCountdownTimeSeconds = getInitialTimerValue()
+                }
+                
                 // Timer setup
-                totalDuration = getInitialTimerValue()
-                timerValue = totalDuration
-                isCountingUp = false
+                totalDuration = sessionDataManager.originalCountdownTimeSeconds > 0 ? 
+                    sessionDataManager.originalCountdownTimeSeconds : getInitialTimerValue()
+                
+                // Restore timer state from global properties
+                let elapsed = sessionDataManager.accumulatedSessionTime
+                if sessionDataManager.currentTimerMode == "Countdown" && elapsed < totalDuration {
+                    // Still in countdown mode
+                    timerValue = totalDuration - elapsed
+                    isCountingUp = false
+                } else {
+                    // In countup mode or countdown finished
+                    timerValue = elapsed - totalDuration
+                    isCountingUp = true
+                    sessionDataManager.currentTimerMode = "Countup"
+                }
+                
+                // Debug logging for timer state restoration
+                print("=== COUNTDOWN ACTIVATED SCREEN TIMER RESTORATION ===")
+                print("originalCountdownTimeSeconds: \(sessionDataManager.originalCountdownTimeSeconds)")
+                print("currentTimerMode: \(sessionDataManager.currentTimerMode)")
+                print("accumulatedSessionTime: \(sessionDataManager.accumulatedSessionTime)")
+                print("totalDuration: \(totalDuration)")
+                print("timerValue: \(timerValue)")
+                print("isCountingUp: \(isCountingUp)")
+                print("==================================================")
+                
+                didPlayNotification = isCountingUp
                 startTimer()
                 // Heart rate setup
                 startHeartRateUpdates()
-                // Simulate hardware button handler (for demo)
-                setupHardwareButtonHandlers()
+                // Check system water lock state
+                waterLockManager.checkSystemWaterLockState()
+                // Set up periodic water lock state checking
+                Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+                    waterLockManager.checkSystemWaterLockState()
+                }
             }
             .onDisappear {
+                // Stop timers
                 timer?.invalidate()
                 heartRateTimer?.invalidate()
             }
@@ -328,15 +386,18 @@ struct CountdownActivatedScreen: View {
             if !isCountingUp {
                 if timerValue > 0 {
                     timerValue -= 1
+                    sessionDataManager.accumulatedSessionTime += 1
                     checkFlagBounce()
                 } else if !didPlayNotification {
                     isCountingUp = true
                     timerValue = 0
+                    sessionDataManager.currentTimerMode = "Countup"
                     WKInterfaceDevice.current().play(.notification)
                     didPlayNotification = true
                 }
             } else {
                 timerValue += 1
+                sessionDataManager.accumulatedSessionTime += 1
                 checkFlagBounce()
             }
         }
@@ -357,6 +418,7 @@ struct CountdownActivatedScreen: View {
             // Simulate heart rate update (replace with HealthKit in real app)
             let hr = Int.random(in: 55...130)
             heartRate = hr
+            sessionDataManager.HRArray.append(hr)
         }
     }
 }

@@ -37,7 +37,7 @@ struct SelectSessionScreen: View {
                     if let lastSession = sessionDataManager.lastSessionData {
                         Button(action: {
                             selectedOption = .useLast
-                            navigationManager.goToScreen(.countdownActivated)
+                            navigationManager.goToScreen(.prepareCountdown)
                         }) {
                             OptionContainer(
                                 iconName: "repeat",

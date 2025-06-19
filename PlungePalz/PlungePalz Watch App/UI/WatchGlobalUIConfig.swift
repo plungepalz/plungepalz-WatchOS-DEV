@@ -350,15 +350,61 @@ struct WatchGlobalUIConfig {
 
     }
 
-    // ==== 6. CountdownActivatedScreen ====
+    // ==== 6. PrepareCountdownScreen ====
+    struct PrepareCountdownScreen {
+
+        // Countdown Title UI
+        static func countdownTextTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 25
+            case .regular: return 25
+            case .ultra: return 25
+            }
+        }
+
+        static func countdownTextFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func verticalGapBetweenTitleAndCircle(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return -10
+            case .regular: return -5
+            case .ultra: return 0
+            }
+        }
+
+        static func circleSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 90
+            case .regular: return 110
+            case .ultra: return 110
+            }
+        }
+        
+    }
+
+    // ==== 7. CountdownActivatedScreen ====
     struct CountdownActivatedScreen {
 
-        // Top Corner Padding for Lock Icon
-        static func lockIconTopCornerPadding(for size: WatchScreenSize) -> CGFloat {
+        // Top Corner Padding for Stop Icon
+        static func stopIconTopCornerPadding(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 8
-            case .regular: return 12
-            case .ultra: return 14
+            case .small: return 4
+            case .regular: return 8
+            case .ultra: return 8
+            }
+        }
+
+        static func stopIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 28
+            case .regular: return 34
+            case .ultra: return 42
             }
         }
 
@@ -475,6 +521,193 @@ struct WatchGlobalUIConfig {
             }
         }
     }
+
+    // ==== 8. ActivityStoppedOrPausedScreen ====
+    struct ActivityStoppedOrPausedScreen {
+
+        // Option Container Width
+        static func optionContainerTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return -15
+            case .regular: return -15
+            case .ultra: return -20
+            }
+        }
+
+        static func optionContainerWidthRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0.9
+            case .regular: return 0.9
+            case .ultra: return 0.9
+            }
+        }
+
+        // Option Container Height
+        static func optionContainerHeightRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0.1
+            case .regular: return 0.1
+            case .ultra: return 0.1
+            }
+        }
+
+        // Option Container Assets
+        static func optionIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 20
+            case .regular: return 24
+            case .ultra: return 28
+            }
+        }
+
+        static func optionTitleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func optionSubtitleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 16
+            case .ultra: return 18
+            }
+        }   
+
+        static func iconTitleGap(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 6
+            case .regular: return 8
+            case .ultra: return 8
+            }
+        }
+    }
+
+
+    // ==== 9A. SessionDeletedScreen ====
+    struct SessionDeletedScreen {
+
+        // Icon Size
+        static func iconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 40
+            case .regular: return 40
+            case .ultra: return 46
+            }
+        }
+
+        // Title Font Size
+        static func titleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 22
+            case .ultra: return 24
+            }
+        }
+
+        // Button Assets
+        static func buttonVerticalPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 8
+            case .regular: return 10
+            case .ultra: return 12
+            }
+        }
+
+    
+    }
+
+    // ==== 9B. SessionRecapScreen ====
+    struct SessionRecapScreen {
+        // Option Container Width
+        static func optionContainerTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return -15
+            case .regular: return -15
+            case .ultra: return -20
+            }
+        }
+
+        static func optionContainerWidthRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0.9
+            case .regular: return 0.9
+            case .ultra: return 0.9
+            }
+        }
+
+        // Option Container Height
+        static func optionContainerHeightRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0.1
+            case .regular: return 0.1
+            case .ultra: return 0.1
+            }
+        }
+
+        // Option Container Assets
+        static func optionIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 20
+            case .regular: return 24
+            case .ultra: return 28
+            }
+        }
+
+        static func optionTitleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func optionSubtitleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 16
+            case .ultra: return 18
+            }
+        }   
+
+        static func iconTitleGap(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 8
+            case .regular: return 8
+            case .ultra: return 8
+            }
+        }
+
+        // Option Container Assets
+        static func optionContainerHorizontalPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 4
+            case .regular: return 8
+            case .ultra: return 8
+            }
+        }
+
+        static func optionContainerVerticalPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 8
+            case .regular: return 8
+            case .ultra: return 8
+            }
+        }
+
+        // Retrying Progress Bar Assets
+        static func retryingProgressBarPaddingVerticalOffsetRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0.45
+            case .regular: return 0.45
+            case .ultra: return 0.45
+            }
+        }
+    }
+
+
 
 
     // Add more nested structs for other screens as needed...

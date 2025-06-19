@@ -132,22 +132,44 @@ struct HomeScreen: View {
                 Color.black
                 VStack(spacing: 4) {
                     if connectionStatus == .connecting {
-                        Image(systemName: "wifi")
-                            .font(.system(size: connectionStatusIconSize, weight: .bold))
-                            .foregroundStyle(Color(red: 0.4, green: 0.8, blue: 1.0))
-                            .symbolEffect(.bounce.up.byLayer, options: .repeating)
-                            .padding(.top, bottomLogoSpacing)
+                        if #available(watchOS 10.0, *) {
+                            Image(systemName: "wifi")
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(Color(red: 0.4, green: 0.8, blue: 1.0))
+                                .symbolEffect(.bounce.up.byLayer, options: .repeating)
+                                .padding(.top, bottomLogoSpacing)
+                        } else {
+                            Image(systemName: "wifi")
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(Color(red: 0.4, green: 0.8, blue: 1.0))
+                                .padding(.top, bottomLogoSpacing)
+                        }
                     } else if connectionStatus == .connected {
-                        Image(systemName: "checkmark.icloud.fill")
-                            .font(.system(size: connectionStatusIconSize, weight: .bold))
-                            .foregroundStyle(connectionStatus.iconColor)
-                            .symbolEffect(.bounce.up.byLayer, options: .nonRepeating)
-                            .padding(.top, bottomLogoSpacing)
+                        if #available(watchOS 10.0, *) {
+                            Image(systemName: "checkmark.icloud.fill")
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(connectionStatus.iconColor)
+                                .symbolEffect(.bounce.up.byLayer, options: .nonRepeating)
+                                .padding(.top, bottomLogoSpacing)
+                        } else {
+                            Image(systemName: "checkmark.icloud.fill")
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(connectionStatus.iconColor)
+                                .padding(.top, bottomLogoSpacing)
+                        }
                     } else {
-                        Image(systemName: connectionStatus.iconName)
-                            .font(.system(size: connectionStatusIconSize, weight: .bold))
-                            .foregroundStyle(connectionStatus.iconColor)
-                            .padding(.top, bottomLogoSpacing)
+                        if #available(watchOS 10.0, *) {
+                            Image(systemName: connectionStatus.iconName)
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(connectionStatus.iconColor)
+                                .symbolEffect(.bounce.up.byLayer, options: .repeating)
+                                .padding(.top, bottomLogoSpacing)
+                        } else {
+                            Image(systemName: connectionStatus.iconName)
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(connectionStatus.iconColor)
+                                .padding(.top, bottomLogoSpacing)
+                        }
                     }
                     Text(connectionStatus.statusText)
                         .watchAdaptivePoppinsFont(style: .title, weight: .bold)
