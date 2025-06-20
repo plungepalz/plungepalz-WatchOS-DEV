@@ -6,9 +6,8 @@
 import SwiftUI
 
 struct WatchGlobalUIConfig {
-    
-    
-    // ==== 1. HomeScreen ====
+
+    // ==== 1A. HomeScreen ====
     struct HomeScreen {
 
         // Container Height Ratios
@@ -114,6 +113,170 @@ struct WatchGlobalUIConfig {
             case .small: return 0
             case .regular: return 8
             case .ultra: return 12
+            }
+        }
+    }
+
+    // ==== 1B. PendingSaveSessionsScreen ====
+    struct PendingSaveSessionsScreen {
+
+        // Title UI
+        static func titleTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return -15
+            case .regular: return -20
+            case .ultra: return -25
+            }
+        }
+
+        static func titleBottomPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 0
+            case .ultra: return 0
+            }
+        }
+
+        static func titleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        // Option Container Width
+        static func optionContainerTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 10
+            case .regular: return 10
+            case .ultra: return 12
+            }
+        }
+
+        static func optionContainerWidthRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0.9
+            case .regular: return 0.9
+            case .ultra: return 0.9
+            }
+        }
+
+        // Option Container Height
+        static func optionContainerHeightRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0.1
+            case .regular: return 0.1
+            case .ultra: return 0.1
+            }
+        }
+
+        // Option Container Assets
+        static func optionIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 20
+            case .regular: return 24
+            case .ultra: return 28
+            }
+        }
+
+        static func optionTitleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func optionSubtitleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 16
+            case .ultra: return 18
+            }
+        }
+
+        static func iconTitleGap(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 6
+            case .regular: return 8
+            case .ultra: return 8
+            }
+        }
+    }
+    
+    // ==== 1C. SavingOrDeletingPendingActivities ====
+    struct SavingOrDeletingPendingActivities {
+
+        static func titleTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 5
+            case .regular: return 15
+            case .ultra: return 20
+            }
+        }
+
+        static func titleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 20
+            case .ultra: return 22
+            }
+        }
+
+        static func circleTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 10
+            case .regular: return 10
+            case .ultra: return 15
+            }
+        }
+
+        static func circleSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 90
+            case .regular: return 95
+            case .ultra: return 100
+            }
+        }
+
+        static func countdownFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 32
+            case .regular: return 36
+            case .ultra: return 40
+            }
+        }
+
+        static func buttonTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 10
+            case .regular: return 10
+            case .ultra: return 20
+            }
+        }
+
+        static func buttonFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func buttonWidth(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 90
+            case .regular: return 120
+            case .ultra: return 120
+            }
+        }
+
+        static func buttonHeight(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 30
+            case .regular: return 40
+            case .ultra: return 40
             }
         }
     }

@@ -19,6 +19,8 @@ enum AppScreen: Int, CaseIterable {
     case activityStoppedOrPaused = 8
     case sessionDeleted = 9
     case sessionRecap = 10
+    case pendingSaveSessions = 11
+    case savingOrDeletingPendingActivities = 12
     
     var title: String {
         switch self {
@@ -42,6 +44,10 @@ enum AppScreen: Int, CaseIterable {
             return "Session Deleted"
         case .sessionRecap:
             return "Session Recap"
+        case .pendingSaveSessions:
+            return "Pending Save Sessions"
+        case .savingOrDeletingPendingActivities:
+            return "Saving or Deleting Activities"
         }
     }
     
@@ -54,6 +60,7 @@ enum AppScreen: Int, CaseIterable {
 class NavigationManager: ObservableObject {
     @Published var currentScreen: AppScreen = .home
     @Published var previousScreen: AppScreen = .home
+    @Published var activityMode: SavingOrDeletingPendingActivities.ActivityMode = .saving
     
     func nextScreen() {
         previousScreen = currentScreen

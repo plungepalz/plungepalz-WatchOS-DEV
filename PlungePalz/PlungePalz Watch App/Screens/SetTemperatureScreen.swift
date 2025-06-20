@@ -83,7 +83,7 @@ struct SetTemperatureScreen: View {
             // Pickers
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.2))
+                    .fill(Color.white.opacity(0.3))
                     .frame(height: 28)
                 HStack(alignment: .center, spacing: valuesContainerGap) {
                     // Unit Picker
@@ -172,6 +172,7 @@ struct SetTemperatureScreen: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     Spacer(minLength: 0)
+                    .cornerRadius(50)
                 }
                 .padding(.vertical, buttonInternalTopPadding)
                 .background(Color.blue.opacity(0.7))
