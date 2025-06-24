@@ -16,8 +16,13 @@ struct SavingOrDeletingPendingActivities: View {
     @ObservedObject var navigationManager: NavigationManager
     let mode: ActivityMode
     
-    // Test variable to simulate API request success/failure
-    private let API_Request_Successful = true
+    // API Status Management
+    @StateObject private var apiManager = APIs.shared
+    @State private var apiStatus: String = "Calling" // "Calling", "Success", "Retrying", "Failed"
+    @State private var apiTimer: Timer?
+    @State private var retryAttempt: Int = 0
+    @State private var retryProgress: CGFloat = 1.0
+    @State private var retryProgressTimer: Timer?
     
     enum CountdownState {
         case initialCountdown, apiCalling, successCountdown, failed
@@ -28,6 +33,11 @@ struct SavingOrDeletingPendingActivities: View {
     @State private var countdown: Double = 10
     @State private var totalTime: Double = 10
     @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
+    
+    // Get pending requests from UserDefaults
+    private var pendingRequests: [[String: Any]] {
+        return UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
+    }
     
     private var title: String {
         switch currentState {
@@ -142,6 +152,10 @@ struct SavingOrDeletingPendingActivities: View {
         }
         .onDisappear {
             stopTimer()
+            // Clean up API timer when leaving screen
+            apiTimer?.invalidate()
+            apiTimer = nil
+            retryProgressTimer?.invalidate()
         }
     }
     
@@ -195,17 +209,8 @@ struct SavingOrDeletingPendingActivities: View {
                 } else { // mode is .saving
                     currentState = .apiCalling
                     
-                    // Simulate 4-second API call
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                        // Fill the progress bar *after* the response
-                        countdown = totalTime
-                        
-                        if API_Request_Successful {
-                            currentState = .successCountdown
-                        } else {
-                            currentState = .failed
-                        }
-                    }
+                    // Make actual API call to save pending requests
+                    makeAPIPostRequest()
                 }
             }
         }
@@ -217,6 +222,81 @@ struct SavingOrDeletingPendingActivities: View {
 
     private func stopTimer() {
         self.timer.upstream.connect().cancel()
+    }
+    
+    // API Functions
+    private func makeAPIPostRequest() {
+        print("=== STARTING PENDING REQUESTS API POST ===")
+        apiStatus = "Calling"
+        retryAttempt = 0
+        retryProgress = 1.0
+        retryProgressTimer?.invalidate()
+        
+        // Check if there are pending requests
+        if pendingRequests.isEmpty {
+            print("No pending requests to save")
+            apiStatus = "Success"
+            currentState = .successCountdown
+            countdown = totalTime
+            return
+        }
+        
+        performAPICall()
+    }
+    
+    private func performAPICall() {
+        // Create request using APIs helper for array of dictionaries
+        guard let request = apiManager.createRequest(
+            url: apiManager.savePendingSessionsEndpoint,
+            method: "POST",
+            bodyArray: pendingRequests
+        ) else {
+            print("Failed to create request")
+            apiStatus = "Failed"
+            currentState = .failed
+            return
+        }
+        
+        // Make the request
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                let result = self.apiManager.handleAPIResponse(response as? HTTPURLResponse, data: data, error: error)
+                
+                if result.success {
+                    // Success - clear pending requests
+                    UserDefaults.standard.removeObject(forKey: "pending_requests")
+                    print("=== PENDING REQUESTS API POST SUCCESS ===")
+                    self.apiStatus = "Success"
+                    self.currentState = .successCountdown
+                    self.countdown = self.totalTime
+                } else {
+                    // Failure
+                    print("API Error: \(result.message)")
+                    self.handleAPIFailure()
+                }
+            }
+        }.resume()
+    }
+    
+    private func handleAPIFailure() {
+        retryAttempt += 1
+        print("Retry attempt: \(retryAttempt)")
+        
+        if retryAttempt < 3 {
+            apiStatus = "Retrying"
+            print("=== PENDING REQUESTS API POST RETRYING (\(retryAttempt)) ===")
+            
+            // Retry after 5 seconds
+            apiTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                DispatchQueue.main.async {
+                    self.performAPICall()
+                }
+            }
+        } else {
+            apiStatus = "Failed"
+            print("=== PENDING REQUESTS API POST FAILED AFTER 3 RETRIES ===")
+            currentState = .failed
+        }
     }
 }
 

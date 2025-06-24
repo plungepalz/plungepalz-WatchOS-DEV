@@ -13,6 +13,7 @@ struct SessionRecapScreen: View {
     @ObservedObject var navigationManager: NavigationManager
     
     // API Status Management
+    @StateObject private var apiManager = APIs.shared
     @State private var apiStatus: String = "Calling" // "Calling", "Success", "Retrying", "Failed"
     @State private var apiTimer: Timer?
     // Test variables for simulating API results
@@ -23,6 +24,37 @@ struct SessionRecapScreen: View {
     @State private var retryAttempt: Int = 0
     @State private var retryProgress: CGFloat = 1.0
     @State private var retryProgressTimer: Timer?
+    
+    // Global payload for API request
+    private var apiPayload: [String: Any] {
+        let userId = UserDefaults.standard.string(forKey: "userId") ?? "unknown"
+        let originalSetTime = sessionDataManager.originalCountdownTimeSeconds
+        let totalTime = calculateTotalTime()
+        let epicTime = sessionDataManager.epicTime ?? 0
+        let temp_F = getSessionTemperature()
+        let hr_array = sessionDataManager.HRArray
+        let localTime = getFormattedTimeLocal()
+        let d_id = getDeviceName()
+        let d_mv = getDeviceModelVersion()
+        let d_fv = getDeviceFirmwareVersion()
+        let d_i = getDeviceIdentifier()
+        let timestamp_utc = getFormattedTimeUTC()
+
+        return [
+            "d_id": d_id,
+            "d_fv": d_fv,
+            "d_mv": d_mv,
+            "d_i": d_i,
+            "user_id": userId,
+            "original_set_time": originalSetTime,
+            "total_time": totalTime,
+            "epic_time": epicTime,
+            "temp_f": temp_F,
+            "hr_array": hr_array,
+            "timestamp_utc": timestamp_utc,
+            "localTime": localTime
+        ]
+    }
     
     // Helper functions
     private func getTimeString() -> String {
@@ -74,63 +106,67 @@ struct SessionRecapScreen: View {
     }
     
     // API Functions
-    private func simulateAPIPost() {
-        print("=== STARTING API POST SIMULATION ===")
+    private func makeAPIPostRequest() {
+        print("=== STARTING API POST REQUEST ===")
         apiStatus = "Calling"
         retryAttempt = 0
         retryProgress = 1.0
         retryProgressTimer?.invalidate()
-        // Simulate 4-second API call
-        apiTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: false) { _ in
+        
+        performAPICall()
+    }
+    
+    private func performAPICall() {
+        // Create request using APIs helper
+        guard let request = apiManager.createRequest(
+            url: apiManager.saveSessionEndpoint,
+            method: "POST",
+            body: apiPayload
+        ) else {
+            print("Failed to create request")
+            apiStatus = "Failed"
+            savePendingRequest()
+            return
+        }
+        
+        // Make the request
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                if self.API_Success {
+                let result = self.apiManager.handleAPIResponse(response as? HTTPURLResponse, data: data, error: error)
+                
+                if result.success {
+                    // Success
                     self.apiStatus = "Success"
                     print("=== API POST SUCCESS ===")
                 } else {
-                    self.apiStatus = "Retrying"
-                    self.startRetryProgressBar()
-                    print("=== API POST RETRYING (1) ===")
-                    self.simulateRetryingAPICall()
+                    // Failure
+                    print("API Error: \(result.message)")
+                    self.handleAPIFailure()
                 }
             }
-        }
+        }.resume()
     }
-
-    private func simulateRetryingAPICall() {
+    
+    private func handleAPIFailure() {
         retryAttempt += 1
-        retryProgress = 1.0
-        retryProgressTimer?.invalidate()
-        if apiStatus == "Retrying" { startRetryProgressBar() }
-        let retryResult: Bool
-        switch retryAttempt {
-        case 1:
-            retryResult = RetryingResultSuccess_1
-        case 2:
-            retryResult = RetryingResultSuccess_2
-        case 3:
-            retryResult = RetryingResultSuccess_3
-        default:
-            retryResult = false
-        }
-        // Simulate 2-second retry API call
-        apiTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { _ in
-            DispatchQueue.main.async {
-                if retryResult {
-                    self.apiStatus = "Success"
-                    self.retryProgressTimer?.invalidate()
-                    print("=== API POST SUCCESS (RETRY #\(self.retryAttempt)) ===")
-                } else if self.retryAttempt < 3 {
-                    self.apiStatus = "Retrying"
-                    self.startRetryProgressBar()
-                    print("=== API POST RETRYING (\(self.retryAttempt + 1)) ===")
-                    self.simulateRetryingAPICall()
-                } else {
-                    self.apiStatus = "Failed"
-                    self.retryProgressTimer?.invalidate()
-                    print("=== API POST FAILED AFTER 3 RETRIES ===")
-                    self.savePendingRequest()
+        print("Retry attempt: \(retryAttempt)")
+        
+        if retryAttempt < 3 {
+            apiStatus = "Retrying"
+            startRetryProgressBar()
+            print("=== API POST RETRYING (\(retryAttempt)) ===")
+            
+            // Retry after 15 seconds
+            apiTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { _ in
+                DispatchQueue.main.async {
+                    self.performAPICall()
                 }
             }
+        } else {
+            apiStatus = "Failed"
+            retryProgressTimer?.invalidate()
+            print("=== API POST FAILED AFTER 3 RETRIES ===")
+            savePendingRequest()
         }
     }
 
@@ -384,8 +420,8 @@ struct SessionRecapScreen: View {
             print("accumulatedSessionTime: \(sessionDataManager.accumulatedSessionTime)")
             print("================================")
             
-            // Start API POST simulation
-            simulateAPIPost()
+            // Start API POST request
+            makeAPIPostRequest()
         }
         .onDisappear {
             // Clean up timer when leaving screen
@@ -403,38 +439,11 @@ struct SessionRecapScreen: View {
     
     // Save failed session to UserDefaults for later upload
     private func savePendingRequest() {
-        let userId = UserDefaults.standard.string(forKey: "userId") ?? "unknown"
-        let originalSetTime = sessionDataManager.originalCountdownTimeSeconds
-        let totalTime = calculateTotalTime()
-        let epicTime = sessionDataManager.epicTime ?? 0
-        let temp_F = getSessionTemperature()
-        let hr_array = sessionDataManager.HRArray
-        let localTime = getFormattedTimeLocal()
-        let d_id = getDeviceName()
-        let d_mv = getDeviceModelVersion()
-        let d_fv = getDeviceFirmwareVersion()
-        let d_i = getDeviceIdentifier()
-        let timestamp_utc = getFormattedTimeUTC()
-
-        let record: [String: Any] = [
-            "userId": userId,
-            "originalSetTime": originalSetTime,
-            "totalTime": totalTime,
-            "epicTime": epicTime,
-            "temp_F": temp_F,
-            "hr_array": hr_array,
-            "localTime": localTime,
-            "d_id": d_id,
-            "d_mv": d_mv,
-            "d_fv": d_fv,
-            "d_i": d_i,
-            "timestamp_utc": timestamp_utc
-        ]
         var pending = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
-        pending.append(record)
+        pending.append(apiPayload)
         UserDefaults.standard.set(pending, forKey: "pending_requests")
         print("=== SAVED PENDING REQUEST ===")
-        print(record)
+        print(apiPayload)
     }
 
     // Helper: Calculate total time (in seconds)

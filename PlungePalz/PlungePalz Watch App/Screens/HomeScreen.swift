@@ -49,7 +49,7 @@ struct HomeScreen: View {
             case .connecting:
                 return .yellow
             case .notPaired:
-                return .orange
+                return .yellow
             case .noWiFi:
                 return .red
             }
@@ -162,7 +162,7 @@ struct HomeScreen: View {
                             Image(systemName: connectionStatus.iconName)
                                 .font(.system(size: connectionStatusIconSize, weight: .bold))
                                 .foregroundStyle(connectionStatus.iconColor)
-                                .symbolEffect(.bounce.up.byLayer, options: .repeating)
+                                .symbolEffect(.bounce.up.byLayer, options: .nonRepeating)
                                 .padding(.top, bottomLogoSpacing)
                         } else {
                             Image(systemName: connectionStatus.iconName)
@@ -193,14 +193,28 @@ struct HomeScreen: View {
                         .foregroundStyle(.white)
                         .padding(.trailing, chevronPadding)
                     HStack(spacing: chevronPadding) {
-                        Image(systemName: "snowflake")
-                            .font(.system(size: connectionStatusIconSize, weight: .bold))
-                            .foregroundStyle(.white)
-                        Text("Plunge")
-                            .watchAdaptivePoppinsFont(style: .title, weight: .regular)
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                        // Connected or No WiFi
+                        if connectionStatus == .connected || connectionStatus == .noWiFi {
+                            Image(systemName: "snowflake")
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(.white)
+                            Text("Plunge")
+                                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        } 
+                        // Not Paired
+                        else if connectionStatus == .notPaired {
+                            Image(systemName: "app.connected.to.app.below.fill")
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(.white)
+                            Text("Pair")
+                                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                    }
                     }
                     .padding(.vertical, plungeButtonVerticalPadding)
                     .padding(.horizontal, plungeButtonHorizontalPadding)
@@ -248,7 +262,23 @@ struct HomeScreen: View {
         .edgesIgnoringSafeArea(.all)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
-            simulateConnection()
+            // Check for stored userId in local memory
+            let storedUserId = UserDefaults.standard.string(forKey: "userId")
+            print("=== HOMESCREEN USER ID CHECK ===")
+            if let userId = storedUserId {
+                print("✅ User ID found in local memory: \(userId)")
+                // User is paired, simulate connection process
+                simulateConnection()
+            } else {
+                print("❌ No User ID found in local memory - user needs to pair device")
+                // User is not paired, set status immediately
+                connectionStatus = .notPaired
+            }
+            print("=================================")
+
+            // When the home screen is loaded, reset the session tracking
+            sessionDataManager.resetSessionTracking()
+            
         }
         .onChange(of: connectionStatus) { newStatus in
             if newStatus == .connected {

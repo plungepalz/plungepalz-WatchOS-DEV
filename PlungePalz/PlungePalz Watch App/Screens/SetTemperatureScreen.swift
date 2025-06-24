@@ -12,6 +12,7 @@ struct SetTemperatureScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
 
+
     @State private var selectedUnitIndex: Int = 0 // 0 = °F, 1 = °C
     @State private var selectedWhole: Int = 45
     @State private var selectedDecimal: Int = 1
@@ -154,11 +155,19 @@ struct SetTemperatureScreen: View {
             // START button
             Button(action: {
                 // Save temp and unit as string
-                let tempString = getTempString()
+                var tempString = getTempString()
                 let unitString = getUnitOfMeasure()
                 if sessionDataManager.lastSessionData == nil {
                     sessionDataManager.lastSessionData = [:]
                 }
+
+                // If the unit is Metric, convert the temp from Fahrenheit to Celsius for display purposes
+                if unitString == "Metric" {
+                    let celsius = Double(tempString) ?? 0
+                    let fahrenheit = (celsius * 9 / 5) + 32
+                    tempString = String(format: "%.1f", fahrenheit)
+                }
+
                 sessionDataManager.lastSessionData?["lastSessionWaterTemp"] = tempString
                 sessionDataManager.lastSessionData?["unitOfMeasure"] = unitString
                 navigationManager.goToScreen(.prepareCountdown)

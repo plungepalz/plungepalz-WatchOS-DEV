@@ -283,6 +283,89 @@ struct WatchGlobalUIConfig {
 
     // ==== 2. ConnectDeviceScreen ====
     struct ConnectDeviceScreen {
+
+        // Ratio for Rectangular Progress Height and Width
+        static func progressHeightRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 1
+            case .regular: return 0.97
+            case .ultra: return 0.97
+            }
+        }
+
+        static func progressWidthRatio(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 1
+            case .regular: return 0.97
+            case .ultra: return 0.97
+            }
+        }
+
+        static func outerProgressContainerBorderRadius(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 20
+            case .regular: return 20
+            case .ultra: return 25
+            }
+        }
+
+        static func innerProgressContainerBorderRadius(for size: WatchScreenSize) -> CGFloat {
+
+            switch size {
+            case .small: return 15
+            case .regular: return 10
+            case .ultra: return 17
+            }
+        }
+
+        static func six_digit_font_size(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 25
+            case .regular: return 30
+            case .ultra: return 34
+            }
+        }
+
+        static func status_text_font_size(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 22
+            }
+        }
+
+        // Skip Button Assets
+        static func skipButtonTextPaddingHorizontal(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return -30
+            case .regular: return -40
+            case .ultra: return -50
+            }
+        }
+
+        static func skipButtonTextPaddingVertical(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return -5
+            case .regular: return -10
+            case .ultra: return -10
+            }
+        }
+
+        static func skipButtonFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 16
+            case .ultra: return 20
+            }
+        }
+
+        static func skipButtonTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 80
+            case .regular: return 90
+            case .ultra: return 100
+            }
+        }
         
     }
 
