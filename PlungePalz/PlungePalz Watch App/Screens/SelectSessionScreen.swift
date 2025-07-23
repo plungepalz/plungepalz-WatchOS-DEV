@@ -36,8 +36,11 @@ struct SelectSessionScreen: View {
                 VStack(spacing: 16) {
                     if let lastSession = sessionDataManager.lastSessionData {
                         Button(action: {
+                            // print("=== SELECT SESSION SCREEN: Use Last button tapped ===")
+                            // print("lastSession data: \(lastSession)")
                             selectedOption = .useLast
-                            navigationManager.goToScreen(.prepareCountdown)
+                            // print("=== SELECT SESSION SCREEN: Navigating to countdownActivated ===")
+                            navigationManager.goToScreen(.countdownActivated)
                         }) {
                             OptionContainer(
                                 iconName: "repeat",

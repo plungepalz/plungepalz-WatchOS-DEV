@@ -596,45 +596,7 @@ struct WatchGlobalUIConfig {
 
     }
 
-    // ==== 6. PrepareCountdownScreen ====
-    struct PrepareCountdownScreen {
-
-        // Countdown Title UI
-        static func countdownTextTopPadding(for size: WatchScreenSize) -> CGFloat {
-            switch size {
-            case .small: return 25
-            case .regular: return 25
-            case .ultra: return 25
-            }
-        }
-
-        static func countdownTextFontSize(for size: WatchScreenSize) -> CGFloat {
-            switch size {
-            case .small: return 16
-            case .regular: return 18
-            case .ultra: return 20
-            }
-        }
-
-        static func verticalGapBetweenTitleAndCircle(for size: WatchScreenSize) -> CGFloat {
-            switch size {
-            case .small: return -10
-            case .regular: return -5
-            case .ultra: return 0
-            }
-        }
-
-        static func circleSize(for size: WatchScreenSize) -> CGFloat {
-            switch size {
-            case .small: return 90
-            case .regular: return 110
-            case .ultra: return 110
-            }
-        }
-        
-    }
-
-    // ==== 7. CountdownActivatedScreen ====
+    // ==== 6. CountdownActivatedScreen ====
     struct CountdownActivatedScreen {
 
         // Top Corner Padding for Stop Icon

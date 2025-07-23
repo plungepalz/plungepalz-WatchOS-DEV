@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var navigationManager = NavigationManager()
+    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var backgroundTimerManager: BackgroundTimerManager
     
     var body: some View {
         Group {
@@ -23,8 +25,6 @@ struct ContentView: View {
                 SetTimerScreen(navigationManager: navigationManager)
             case .setTemperature:
                 SetTemperatureScreen(navigationManager: navigationManager)
-            case .prepareCountdown:
-                PrepareCountdownScreen(navigationManager: navigationManager)
             case .countdownActivated:
                 let source: CountdownActivatedScreen.NavigationSource = navigationManager.previousScreen == .selectSession ? .selectSession : .setTemperature
                 CountdownActivatedScreen(navigationManager: navigationManager, navigationSource: source)
@@ -40,8 +40,14 @@ struct ContentView: View {
                 SavingOrDeletingPendingActivities(navigationManager: navigationManager, mode: navigationManager.activityMode)
             }
         }
+        .onChange(of: navigationManager.currentScreen) { newScreen in
+            // print("=== CONTENT VIEW: Screen changed to: \(newScreen.title) ===")
+        }
         .animation(.easeInOut(duration: 0.3), value: navigationManager.currentScreen)
         .onAppear {
+            // Connect BackgroundTimerManager with SessionDataManager
+            backgroundTimerManager.setSessionDataManager(sessionDataManager)
+            
             let pendingRequests = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]]
             if let requests = pendingRequests, !requests.isEmpty {
                 navigationManager.goToScreen(.pendingSaveSessions)
@@ -54,4 +60,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(SessionDataManager())
+        .environmentObject(BackgroundTimerManager.shared)
 }

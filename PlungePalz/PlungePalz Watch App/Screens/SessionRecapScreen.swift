@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SessionRecapScreen: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
     

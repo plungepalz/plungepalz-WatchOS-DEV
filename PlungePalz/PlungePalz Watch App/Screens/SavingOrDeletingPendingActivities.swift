@@ -145,9 +145,9 @@ struct SavingOrDeletingPendingActivities: View {
         }
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
-            print("=== SAVING/DELETING PENDING ACTIVITIES SCREEN DEBUG ===")
-            print("Mode: \(mode)")
-            print("=====================================================")
+            // print("=== SAVING/DELETING PENDING ACTIVITIES SCREEN DEBUG ===")
+            // print("Mode: \(mode)")
+            // print("=====================================================")
             startTimer()
         }
         .onDisappear {
@@ -201,7 +201,7 @@ struct SavingOrDeletingPendingActivities: View {
                 if mode == .deleting {
                     // Clear the pending requests from UserDefaults
                     UserDefaults.standard.removeObject(forKey: "pending_requests")
-                    print("Pending requests deleted.")
+                    // print("Pending requests deleted.")
                     
                     // Immediately transition to success state
                     countdown = totalTime
@@ -226,7 +226,7 @@ struct SavingOrDeletingPendingActivities: View {
     
     // API Functions
     private func makeAPIPostRequest() {
-        print("=== STARTING PENDING REQUESTS API POST ===")
+        // print("=== STARTING PENDING REQUESTS API POST ===")
         apiStatus = "Calling"
         retryAttempt = 0
         retryProgress = 1.0
@@ -234,7 +234,7 @@ struct SavingOrDeletingPendingActivities: View {
         
         // Check if there are pending requests
         if pendingRequests.isEmpty {
-            print("No pending requests to save")
+            // print("No pending requests to save")
             apiStatus = "Success"
             currentState = .successCountdown
             countdown = totalTime
@@ -251,7 +251,7 @@ struct SavingOrDeletingPendingActivities: View {
             method: "POST",
             bodyArray: pendingRequests
         ) else {
-            print("Failed to create request")
+            // print("Failed to create request")
             apiStatus = "Failed"
             currentState = .failed
             return
@@ -265,13 +265,13 @@ struct SavingOrDeletingPendingActivities: View {
                 if result.success {
                     // Success - clear pending requests
                     UserDefaults.standard.removeObject(forKey: "pending_requests")
-                    print("=== PENDING REQUESTS API POST SUCCESS ===")
+                    // print("=== PENDING REQUESTS API POST SUCCESS ===")
                     self.apiStatus = "Success"
                     self.currentState = .successCountdown
                     self.countdown = self.totalTime
                 } else {
                     // Failure
-                    print("API Error: \(result.message)")
+                    // print("API Error: \(result.message)")
                     self.handleAPIFailure()
                 }
             }
@@ -280,11 +280,11 @@ struct SavingOrDeletingPendingActivities: View {
     
     private func handleAPIFailure() {
         retryAttempt += 1
-        print("Retry attempt: \(retryAttempt)")
+        // print("Retry attempt: \(retryAttempt)")
         
         if retryAttempt < 3 {
             apiStatus = "Retrying"
-            print("=== PENDING REQUESTS API POST RETRYING (\(retryAttempt)) ===")
+            // print("=== PENDING REQUESTS API POST RETRYING (\(retryAttempt)) ===")
             
             // Retry after 5 seconds
             apiTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
@@ -294,7 +294,7 @@ struct SavingOrDeletingPendingActivities: View {
             }
         } else {
             apiStatus = "Failed"
-            print("=== PENDING REQUESTS API POST FAILED AFTER 3 RETRIES ===")
+            // print("=== PENDING REQUESTS API POST FAILED AFTER 3 RETRIES ===")
             currentState = .failed
         }
     }

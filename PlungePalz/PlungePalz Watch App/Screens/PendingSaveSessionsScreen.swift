@@ -72,7 +72,9 @@ struct PendingSaveSessionsScreen: View {
                         subtitleFontSize: optionSubtitleFontSize,
                         cornerRadius: optionContainerCornerRadius
                     ) {
+                        #if DEBUG
                         print("Save To option clicked.")
+                        #endif
                         navigationManager.activityMode = .saving
                         navigationManager.goToScreen(.savingOrDeletingPendingActivities)
                     }
@@ -92,7 +94,9 @@ struct PendingSaveSessionsScreen: View {
                         subtitleFontSize: optionSubtitleFontSize,
                         cornerRadius: optionContainerCornerRadius
                     ) {
+                        #if DEBUG
                         print("Ignore option clicked. Navigating to HomeScreen.")
+                        #endif
                         navigationManager.goToScreen(.home)
                     }
                     
@@ -111,7 +115,9 @@ struct PendingSaveSessionsScreen: View {
                         subtitleFontSize: optionSubtitleFontSize,
                         cornerRadius: optionContainerCornerRadius
                     ) {
+                        #if DEBUG
                         print("Delete all sessions option clicked.")
+                        #endif
                         navigationManager.activityMode = .deleting
                         navigationManager.goToScreen(.savingOrDeletingPendingActivities)
                     }
@@ -123,9 +129,11 @@ struct PendingSaveSessionsScreen: View {
         .onAppear {
             pendingSessionsCount = getPendingSessionsCount()
             let pendingRequests = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
+            #if DEBUG
             print("=== PENDING SAVE SESSIONS SCREEN DEBUG ===")
             print("Pending Requests: \(pendingRequests)")
             print("========================================")
+            #endif
         }
     }
 }

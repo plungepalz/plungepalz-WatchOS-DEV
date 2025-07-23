@@ -4,43 +4,30 @@ import SwiftUI
 class APIs: ObservableObject {
     static let shared = APIs()
     
-    // MARK: - API Endpoints
-    @Published var saveSessionAPI_endpoint: String = "https://d76hjali51.execute-api.us-east-1.amazonaws.com/SmartWatchActivitySaved_mvp_production/AppleWatch"
-    
     // MARK: - Environment Configuration
     @Published var isProduction: Bool = true
+
     
     // MARK: - API Base URLs
     private var baseURL: String {
         return isProduction 
-            ? "https://d76hjali51.execute-api.us-east-1.amazonaws.com"
-            : "https://dev-api-endpoint.com" // Replace with your dev endpoint
+            ? "https://d76hjali51.execute-api.us-east-1.amazonaws.com/SmartWatchActivitySaved_mvp_production"  // Production Endpoint URL
+            : "https://d76hjali51.execute-api.us-east-1.amazonaws.com/SmartWatchActivitySaved_mvp_production" // DEV Endpoint URL
     }
     
     // MARK: - API Endpoints
     var saveSessionEndpoint: String {
-        return "\(baseURL)/SmartWatchActivitySaved_mvp_production/AppleWatch"
+        return "\(baseURL)/AppleWatch"
     }
     
     var savePendingSessionsEndpoint: String {
-        return "\(baseURL)/SmartWatchActivitySaved_mvp_production/AppleWatch"
+        return "\(baseURL)/AppleWatch"
     }
     
-    var userAuthenticationEndpoint: String {
-        return "\(baseURL)/user/authenticate"
+    var verifyPairingCodeEndpoint: String {
+        return "\(baseURL)/AppleWatch/VerifyPairingCode_AppleWatchSide"
     }
     
-    var userRegistrationEndpoint: String {
-        return "\(baseURL)/user/register"
-    }
-    
-    var deviceSyncEndpoint: String {
-        return "\(baseURL)/device/sync"
-    }
-    
-    var healthCheckEndpoint: String {
-        return "\(baseURL)/health"
-    }
     
     // MARK: - HTTP Headers
     var defaultHeaders: [String: String] {
@@ -62,7 +49,9 @@ class APIs: ObservableObject {
     // MARK: - Helper Methods
     func createRequest(url: String, method: String = "POST", body: [String: Any]? = nil) -> URLRequest? {
         guard let url = URL(string: url) else {
+            #if DEBUG
             print("Invalid URL: \(url)")
+            #endif
             return nil
         }
         
@@ -81,7 +70,9 @@ class APIs: ObservableObject {
                 let jsonData = try JSONSerialization.data(withJSONObject: body)
                 request.httpBody = jsonData
             } catch {
+                #if DEBUG
                 print("JSON serialization error: \(error)")
+                #endif
                 return nil
             }
         }
@@ -92,7 +83,9 @@ class APIs: ObservableObject {
     // Overloaded method for array of dictionaries (bulk operations)
     func createRequest(url: String, method: String = "POST", bodyArray: [[String: Any]]? = nil) -> URLRequest? {
         guard let url = URL(string: url) else {
+            #if DEBUG
             print("Invalid URL: \(url)")
+            #endif
             return nil
         }
         
@@ -111,7 +104,9 @@ class APIs: ObservableObject {
                 let jsonData = try JSONSerialization.data(withJSONObject: bodyArray)
                 request.httpBody = jsonData
             } catch {
+                #if DEBUG
                 print("JSON serialization error: \(error)")
+                #endif
                 return nil
             }
         }
@@ -129,7 +124,9 @@ class APIs: ObservableObject {
             return (false, "Invalid response")
         }
         
+        #if DEBUG
         print("API Response Status: \(response.statusCode)")
+        #endif
         
         if response.statusCode >= 200 && response.statusCode < 300 {
             return (true, "Success")

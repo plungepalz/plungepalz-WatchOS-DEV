@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import HealthKit
 
 struct HomeScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    
+    // MARK: - HealthKit
+    @StateObject private var healthKitManager = HealthKitManager.shared
     
     // Placeholder for connection status
     enum ConnectionStatus {
@@ -264,25 +268,40 @@ struct HomeScreen: View {
         .onAppear {
             // Check for stored userId in local memory
             let storedUserId = UserDefaults.standard.string(forKey: "userId")
-            print("=== HOMESCREEN USER ID CHECK ===")
+            // print("=== HOMESCREEN USER ID CHECK ===")
             if let userId = storedUserId {
-                print("✅ User ID found in local memory: \(userId)")
+                // print("✅ User ID found in local memory: \(userId)")
                 // User is paired, simulate connection process
                 simulateConnection()
             } else {
-                print("❌ No User ID found in local memory - user needs to pair device")
+                // print("❌ No User ID found in local memory - user needs to pair device")
                 // User is not paired, set status immediately
                 connectionStatus = .notPaired
             }
-            print("=================================")
+            // print("=================================")
 
             // When the home screen is loaded, reset the session tracking
             sessionDataManager.resetSessionTracking()
             
+            // Request HealthKit permissions on app launch
+            requestHealthKitPermissions()
         }
         .onChange(of: connectionStatus) { newStatus in
             if newStatus == .connected {
                 sessionDataManager.fetchLastSessionData()
+            }
+        }
+    }
+    
+    // MARK: - HealthKit Permission Request
+    private func requestHealthKitPermissions() {
+        healthKitManager.requestHeartRatePermission { granted in
+            DispatchQueue.main.async {
+                if granted {
+                    // print("✅ HealthKit heart rate permission granted")
+                } else {
+                    // print("❌ HealthKit heart rate permission denied")
+                }
             }
         }
     }

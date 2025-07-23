@@ -9,12 +9,13 @@ import SwiftUI
 
 struct ActivityStoppedOrPausedScreen: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
     
     // Helper to get formatted time string from sessionDataManager
     private func getTimeString() -> String {
-        let totalSeconds = sessionDataManager.accumulatedSessionTime
+        let totalSeconds = Int(workoutManager.elapsedTime)
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, seconds)
@@ -82,7 +83,10 @@ struct ActivityStoppedOrPausedScreen: View {
                         subtitleFontSize: optionSubtitleFontSize,
                         cornerRadius: optionContainerCornerRadius
                     ) {
-                        print("Save option clicked. Navigating to SessionRecapScreen.")
+                        // print("Save option clicked. Stopping workout and navigating to SessionRecapScreen.")
+                        if workoutManager.isActive {
+                            workoutManager.stopWorkout()
+                        }
                         navigationManager.goToScreen(.sessionRecap)
                     }
                     ActionOptionContainer(
@@ -100,7 +104,10 @@ struct ActivityStoppedOrPausedScreen: View {
                         subtitleFontSize: optionSubtitleFontSize,
                         cornerRadius: optionContainerCornerRadius
                     ) {
-                        print("Continue option clicked. Navigating to CountdownActivatedScreen.")
+                        // print("Continue option clicked. Resuming workout and navigating to CountdownActivatedScreen.")
+                        if workoutManager.isActive && workoutManager.isPaused {
+                            workoutManager.resumeWorkout()
+                        }
                         navigationManager.goToScreen(.countdownActivated)
                     }
                     ActionOptionContainer(
@@ -118,7 +125,10 @@ struct ActivityStoppedOrPausedScreen: View {
                         subtitleFontSize: optionSubtitleFontSize,
                         cornerRadius: optionContainerCornerRadius
                     ) {
-                        print("Delete option clicked. Navigating to SessionDeletedScreen.")
+                        // print("Delete option clicked. Discarding workout and navigating to SessionDeletedScreen.")
+                        if workoutManager.isActive {
+                            workoutManager.discardWorkout()
+                        }
                         navigationManager.goToScreen(.sessionDeleted)
                     }
                 }
@@ -130,12 +140,12 @@ struct ActivityStoppedOrPausedScreen: View {
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
             // Debug logging for ActivityStoppedOrPausedScreen
-            print("=== ACTIVITY STOPPED/PAUSED SCREEN DEBUG ===")
-            print("HRArray: \(sessionDataManager.HRArray)")
-            print("HRArray count: \(sessionDataManager.HRArray.count)")
-            print("epicTime: \(sessionDataManager.epicTime ?? -1)")
-            print("accumulatedSessionTime: \(sessionDataManager.accumulatedSessionTime)")
-            print("============================================")
+            // print("=== ACTIVITY STOPPED/PAUSED SCREEN DEBUG ===")
+            // print("HRArray: \(sessionDataManager.HRArray)")
+            // print("HRArray count: \(sessionDataManager.HRArray.count)")
+            // print("epicTime: \(sessionDataManager.epicTime ?? -1)")
+            // print("accumulatedSessionTime: \(sessionDataManager.accumulatedSessionTime)")
+            // print("============================================")
         }
     }
 }

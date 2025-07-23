@@ -1,0 +1,294 @@
+//
+//  WorkoutManager.swift
+//  PlungePalz Watch App
+//
+//  Created by AJ Aviles on 6/5/25.
+//
+
+import Foundation
+import HealthKit
+import Combine
+
+class WorkoutManager: NSObject, ObservableObject {
+    // MARK: - HealthKit Properties
+    private let healthStore = HKHealthStore()
+    private var session: HKWorkoutSession?
+    private var builder: HKLiveWorkoutBuilder?
+    
+    // MARK: - Published Properties
+    @Published var isActive: Bool = false
+    @Published var isPaused: Bool = false
+    @Published var elapsedTime: TimeInterval = 0
+    @Published var workoutState: HKWorkoutSessionState = .notStarted
+    @Published var timerMode: String = "countdown" // "countdown" or "countup"
+    
+    // Heart rate data for workout
+    private var heartRateSamples: [HKQuantitySample] = []
+    
+    // Flag to track if we're in the process of ending a workout
+    private var isEndingWorkout: Bool = false
+    
+    // Timer for elapsed time
+    private var timer: Timer?
+    private var sessionStartDate: Date?
+    private var pauseDate: Date?
+    
+    // MARK: - Start Workout
+    func startWorkout() {
+        #if DEBUG
+        print("=== WORKOUT MANAGER: startWorkout called ===")
+        print("Current isActive: \(isActive)")
+        print("Current isPaused: \(isPaused)")
+        print("Current workoutState: \(workoutState)")
+        #endif
+        
+        // Only start if not already active
+        guard !isActive else { 
+            #if DEBUG
+            print("=== WORKOUT MANAGER: Already active, returning early ===")
+            #endif
+            return 
+        }
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .mindAndBody // Using .mindAndBody for cold plunge therapy
+        configuration.locationType = .indoor
+        
+        do {
+            session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+            builder = session?.associatedWorkoutBuilder()
+            session?.delegate = self
+            builder?.delegate = self
+            
+            // Start the session and builder
+            session?.startActivity(with: Date())
+            builder?.beginCollection(withStart: Date()) { (success, error) in
+                // Handle error if needed
+            }
+            
+            isActive = true
+            isPaused = false
+            workoutState = .running
+            sessionStartDate = Date()
+            startTimer()
+        } catch {
+            print("Failed to start workout session: \(error)")
+        }
+    }
+    
+    // MARK: - Pause Workout
+    func pauseWorkout() {
+        guard isActive, !isPaused else { return }
+        session?.pause()
+        isPaused = true
+        workoutState = .paused
+        pauseDate = Date()
+        stopTimer()
+    }
+    
+    // MARK: - Resume Workout
+    func resumeWorkout() {
+        guard isActive, isPaused else { return }
+        session?.resume()
+        isPaused = false
+        workoutState = .running
+        
+        // Update the session start date to account for the pause duration
+        if let pauseDate = pauseDate {
+            let pauseDuration = Date().timeIntervalSince(pauseDate)
+            sessionStartDate = sessionStartDate?.addingTimeInterval(pauseDuration)
+        }
+        
+        pauseDate = nil
+        startTimer()
+    }
+    
+    // MARK: - End Workout
+    func endWorkout(completion: @escaping (Bool) -> Void) {
+        guard let session = self.session else {
+            completion(false)
+            return
+        }
+
+        #if DEBUG
+        print("=== WORKOUT MANAGER: endWorkout called ===")
+        print("Current session state: \(session.state)")
+        print("Current isPaused: \(isPaused)")
+        #endif
+
+        // Use the same approach as the working MyWorkouts app
+        session.stopActivity(with: Date())
+        
+        // The actual saving will be handled in the HKWorkoutSessionDelegate
+        // when the session state changes to .stopped
+        completion(true)
+    }
+    
+    // MARK: - Stop Workout (simplified approach)
+    func stopWorkout() {
+        guard let session = self.session else { return }
+        
+        #if DEBUG
+        print("=== WORKOUT MANAGER: stopWorkout called ===")
+        print("Current session state: \(session.state)")
+        #endif
+        
+        session.stopActivity(with: Date())
+    }
+    
+    // MARK: - Handle Workout Ending (simplified approach)
+    private func handleWorkoutEnding() {
+        guard let builder = self.builder else { return }
+        
+        #if DEBUG
+        print("=== WORKOUT MANAGER: handleWorkoutEnding called ===")
+        #endif
+        
+        // Use the same approach as the working MyWorkouts app
+        builder.endCollection(withEnd: Date()) { [weak self] (success, error) in
+            if let error = error {
+                print("❌ Failed to end workout collection: \(error.localizedDescription)")
+                return
+            }
+
+            #if DEBUG
+            print("✅ Workout collection ended successfully")
+            #endif
+
+            self?.builder?.finishWorkout { (workout, error) in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("❌ Failed to save workout to HealthKit: \(error.localizedDescription)")
+                        return
+                    }
+                    
+                    if let savedWorkout = workout {
+                        print("✅ Workout saved successfully to HealthKit. UUID: \(savedWorkout.uuid)")
+                        self?.isActive = false
+                        self?.isEndingWorkout = false
+                        self?.stopTimer()
+                    } else {
+                        print("❌ Workout finished but no workout object returned")
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Add Heart Rate Data
+    func addHeartRateData(_ heartRate: Int, timestamp: Date) {
+        guard isActive, let builder = builder else { return }
+        
+        let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
+        let heartRateQuantity = HKQuantity(unit: HKUnit(from: "count/min"), doubleValue: Double(heartRate))
+        let heartRateSample = HKQuantitySample(type: heartRateType, quantity: heartRateQuantity, start: timestamp, end: timestamp)
+        
+        builder.add([heartRateSample]) { success, error in
+            if let error = error {
+                print("Failed to add heart rate data: \(error)")
+            }
+        }
+    }
+    
+    // MARK: - Save Workout to HealthKit
+    private func saveWorkoutToHealthKit() {
+        guard let builder = builder else {
+            print("No workout builder available to save")
+            return
+        }
+        
+        #if DEBUG
+        print("=== WORKOUT MANAGER: saveWorkoutToHealthKit called ===")
+        #endif
+        
+        builder.finishWorkout { (workout, error) in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Failed to save workout to HealthKit: \(error)")
+                    print("Error domain: \(error._domain)")
+                    print("Error code: \(error._code)")
+                    if let nsError = error as NSError? {
+                        print("Error user info: \(nsError.userInfo)")
+                    }
+                } else if let workout = workout {
+                    print("✅ Workout saved successfully to HealthKit")
+                    print("Workout UUID: \(workout.uuid)")
+                    print("Workout start date: \(workout.startDate)")
+                    print("Workout end date: \(workout.endDate)")
+                    print("Workout duration: \(workout.duration) seconds")
+                    print("Workout activity type: \(workout.workoutActivityType.rawValue)")
+                    
+                    // The workout is now saved to the Fitness app and Health app
+                    // Users can see it in their Activity/Fitness app on iPhone
+                } else {
+                    print("Workout finished but no workout object returned")
+                }
+            }
+        }
+    }
+    
+    // MARK: - Discard Workout
+    func discardWorkout() {
+        guard isActive else { return }
+        session?.end()
+        builder?.discardWorkout()
+        isActive = false
+        workoutState = .ended
+        stopTimer()
+    }
+    
+    // MARK: - Timer Management
+    private func startTimer() {
+        #if DEBUG
+        print("=== WORKOUT MANAGER: startTimer called ===")
+        #endif
+        stopTimer()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateElapsedTime()
+        }
+        #if DEBUG
+        print("=== WORKOUT MANAGER: Timer started ===")
+        #endif
+    }
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+    private func updateElapsedTime() {
+        guard let start = sessionStartDate else { 
+            #if DEBUG
+            print("=== WORKOUT MANAGER: updateElapsedTime - no sessionStartDate ===")
+            #endif
+            return 
+        }
+        if isPaused, let pauseDate = pauseDate {
+            // When paused, use the time up to the pause point
+            elapsedTime = pauseDate.timeIntervalSince(start)
+            #if DEBUG
+            print("=== WORKOUT MANAGER: updateElapsedTime (paused) - elapsedTime: \(elapsedTime) ===")
+            #endif
+        } else {
+            // When running, use current time minus start time
+            elapsedTime = Date().timeIntervalSince(start)
+            #if DEBUG
+            print("=== WORKOUT MANAGER: updateElapsedTime (running) - elapsedTime: \(elapsedTime) ===")
+            #endif
+        }
+    }
+}
+
+// MARK: - HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate
+extension WorkoutManager: HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
+    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
+        DispatchQueue.main.async {
+            self.workoutState = toState
+            if toState == .stopped {
+                self.handleWorkoutEnding()
+            }
+        }
+    }
+    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        print("Workout session failed: \(error)")
+    }
+    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
+    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {}
+}

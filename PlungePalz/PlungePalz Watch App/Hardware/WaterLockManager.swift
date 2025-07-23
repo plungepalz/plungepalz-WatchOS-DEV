@@ -32,54 +32,78 @@ class WaterLockManager: ObservableObject {
     /// Checks if the system water lock mode is enabled using the public API
     func checkSystemWaterLockState() {
         let isEnabled = WKInterfaceDevice.current().isWaterLockEnabled
+        #if DEBUG
+        print("=== WATER LOCK MANAGER: checkSystemWaterLockState called ===")
+        print("System water lock enabled: \(isEnabled)")
+        print("Current isSystemWaterLockEnabled: \(isSystemWaterLockEnabled)")
+        #endif
         DispatchQueue.main.async {
             self.isSystemWaterLockEnabled = isEnabled
-            // print("System water lock state: \(isEnabled ? "Enabled" : "Disabled")")
+            #if DEBUG
+            print("=== WATER LOCK MANAGER: Updated isSystemWaterLockEnabled to: \(isEnabled) ===")
+            #endif
         }
     }
     
-    /// Enables water lock mode (app simulation)
+    /// Enables water lock mode programmatically using the correct API
     func enableWaterLock() {
+        #if DEBUG
+        print("=== WATER LOCK MANAGER: enableWaterLock called ===")
+        print("Current isWaterLockEnabled: \(isWaterLockEnabled)")
+        print("Current isLocked: \(isLocked)")
+        #endif
+        
+        // Use the correct API to enable Water Lock mode
+        WKInterfaceDevice.current().enableWaterLock()
+        
         isWaterLockEnabled = true
         isLocked = true
-        print("Water lock enabled (app simulation)")
+        
+        // Start monitoring for Water Lock state changes
+        startWaterLockMonitoring()
+        
+        #if DEBUG
+        print("=== WATER LOCK MANAGER: Water lock enabled programmatically ===")
+        print("New isWaterLockEnabled: \(isWaterLockEnabled)")
+        print("New isLocked: \(isLocked)")
+        #endif
     }
     
-    /// Disables water lock mode (app simulation)
+    /// Disables water lock mode
     func disableWaterLock() {
         guard isWaterLockEnabled else { return }
-        
-        // Re-enable autorotation
-        WKExtension.shared().isAutorotating = true
         
         isWaterLockEnabled = false
         isLocked = false
         
         // Stop the water lock timer
-        stopWaterLockTimer()
+        stopWaterLockMonitoring()
         
-        print("Water lock disabled (app simulation)")
+        #if DEBUG
+        print("=== WATER LOCK MANAGER: Water lock disabled ===")
+        #endif
+    }
+    
+    /// Starts monitoring for Water Lock state changes
+    private func startWaterLockMonitoring() {
+        // Check immediately
+        checkSystemWaterLockState()
+        
+        // Set up periodic checking
+        waterLockTimer?.invalidate()
+        waterLockTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            self.checkSystemWaterLockState()
+        }
+    }
+    
+    /// Stops monitoring for Water Lock state changes
+    private func stopWaterLockMonitoring() {
+        waterLockTimer?.invalidate()
+        waterLockTimer = nil
     }
     
     /// Returns true if the stop button should be disabled (when system water lock is enabled)
     var shouldDisableStopButton: Bool {
         return isSystemWaterLockEnabled
-    }
-    
-    
-    private func stopWaterLockTimer() {
-        waterLockTimer?.invalidate()
-        waterLockTimer = nil
-    }
-    
-    private func checkWaterLockStatus() {
-        // Periodically check system water lock state
-        checkSystemWaterLockState()
-        
-        // Periodically ensure water lock is still active
-        if isWaterLockEnabled {
-            // Re-apply water lock settings if needed
-            WKExtension.shared().isAutorotating = false
-        }
     }
 }

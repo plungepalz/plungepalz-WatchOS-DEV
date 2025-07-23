@@ -11,6 +11,7 @@ import WatchKit
 struct ConnectDeviceScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
+    @StateObject private var apiManager = APIs.shared
     
     // Timer state
     @State private var countdown_1: Double = 45.0
@@ -191,7 +192,7 @@ struct ConnectDeviceScreen: View {
         // Strip the hyphen from the randomSixDigitNumber for the API call
         let pairingCode = randomSixDigitNumber.replacingOccurrences(of: "-", with: "")
         
-        let baseURL = "https://d76hjali51.execute-api.us-east-1.amazonaws.com/SmartWatchActivitySaved_mvp_production/AppleWatch/VerifyPairingCode_AppleWatchSide"
+        let baseURL = apiManager.verifyPairingCodeEndpoint
         let urlString = "\(baseURL)?pairingCode=\(pairingCode)"
         
         guard let url = URL(string: urlString) else {

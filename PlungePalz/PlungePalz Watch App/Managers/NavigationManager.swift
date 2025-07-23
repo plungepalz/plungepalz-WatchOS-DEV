@@ -14,13 +14,12 @@ enum AppScreen: Int, CaseIterable {
     case selectSession = 3
     case setTimer = 4
     case setTemperature = 5
-    case prepareCountdown = 6
-    case countdownActivated = 7
-    case activityStoppedOrPaused = 8
-    case sessionDeleted = 9
-    case sessionRecap = 10
-    case pendingSaveSessions = 11
-    case savingOrDeletingPendingActivities = 12
+    case countdownActivated = 6
+    case activityStoppedOrPaused = 7
+    case sessionDeleted = 8
+    case sessionRecap = 9
+    case pendingSaveSessions = 10
+    case savingOrDeletingPendingActivities = 11
     
     var title: String {
         switch self {
@@ -34,8 +33,6 @@ enum AppScreen: Int, CaseIterable {
             return "Set Timer"
         case .setTemperature:
             return "Set Temperature"
-        case .prepareCountdown:
-            return "Prepare Countdown"
         case .countdownActivated:
             return "Countdown Activated"
         case .activityStoppedOrPaused:
@@ -87,7 +84,11 @@ class NavigationManager: ObservableObject {
     }
     
     func goToScreen(_ screen: AppScreen) {
+        // print("=== NAVIGATION MANAGER: goToScreen called ===")
+        // print("From screen: \(currentScreen.title) (\(currentScreen.rawValue))")
+        // print("To screen: \(screen.title) (\(screen.rawValue))")
         previousScreen = currentScreen
         currentScreen = screen
+        // print("=== NAVIGATION MANAGER: Screen change completed ===")
     }
 } 

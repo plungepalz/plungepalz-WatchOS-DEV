@@ -16,17 +16,21 @@ struct CountdownActivatedScreen: View {
     // MARK: - Session Data
     @EnvironmentObject var sessionDataManager: SessionDataManager
     
+    // MARK: - Background Timer
+    @EnvironmentObject var backgroundTimerManager: BackgroundTimerManager
+    @EnvironmentObject var workoutManager: WorkoutManager
+    
     // MARK: - Screen Management
     @StateObject private var screenManager = WatchScreenManager()
     
     // MARK: - Water Lock Management
     @StateObject private var waterLockManager = WaterLockManager.shared
     
+    // MARK: - HealthKit
+    @StateObject private var healthKitManager = HealthKitManager.shared
+    
     // MARK: - Timer State
     @State private var timer: Timer?
-    @State private var timerValue: Int = 0
-    @State private var totalDuration: Int = 0
-    @State private var isCountingUp: Bool = false
     @State private var didPlayNotification: Bool = false
     
     // MARK: - Heart Rate State
@@ -116,6 +120,61 @@ struct CountdownActivatedScreen: View {
               let sec = Int(parts[1]) else { return nil }
         return min * 60 + sec
     }
+    
+    // MARK: - Timer Display Logic
+    private func getCurrentTimerDisplay() -> (value: Int, isCountup: Bool) {
+        let elapsedTime = Int(workoutManager.elapsedTime)
+        let countdownDuration = sessionDataManager.originalCountdownTimeSeconds
+        
+        if elapsedTime < countdownDuration {
+            // Still in countdown phase
+            let remainingTime = countdownDuration - elapsedTime
+            return (remainingTime, false)
+        } else {
+            // In countup phase
+            let countupTime = elapsedTime - countdownDuration
+            return (countupTime, true)
+        }
+    }
+    
+    // Separate function to update timer mode without causing view update issues
+    private func updateTimerMode() {
+        let elapsedTime = Int(workoutManager.elapsedTime)
+        let countdownDuration = sessionDataManager.originalCountdownTimeSeconds
+        
+        DispatchQueue.main.async {
+            if elapsedTime < countdownDuration {
+                self.workoutManager.timerMode = "countdown"
+            } else {
+                self.workoutManager.timerMode = "countup"
+            }
+        }
+    }
+    
+    // Separate function to update session data
+    private func updateSessionData() {
+        DispatchQueue.main.async {
+            self.sessionDataManager.accumulatedSessionTime = Int(self.workoutManager.elapsedTime)
+        }
+    }
+    
+    // Separate function to handle countdown to countup transition
+    private func handleCountdownToCountupTransition() {
+        let countdownDuration = sessionDataManager.originalCountdownTimeSeconds
+        let elapsedTime = Int(workoutManager.elapsedTime)
+        
+        if elapsedTime == countdownDuration && !didPlayNotification {
+            // Just transitioned to countup mode - play notification
+            WKInterfaceDevice.current().play(.notification)
+            WKInterfaceDevice.current().play(.success)
+            didPlayNotification = true
+            
+            DispatchQueue.main.async {
+                self.sessionDataManager.currentTimerMode = "Countup"
+            }
+        }
+    }
+    
     private func formatTimer(_ value: Int, isCountup: Bool) -> String {
         let absVal = abs(value)
         let min = absVal / 60
@@ -126,17 +185,46 @@ struct CountdownActivatedScreen: View {
 
     // MARK: - Progress
     private func progressFraction() -> CGFloat {
-        if isCountingUp { return 1.0 }
-        return 1.0 - CGFloat(timerValue) / CGFloat(totalDuration)
+        let (_, isCountup) = getCurrentTimerDisplay()
+        if isCountup { return 1.0 }
+        
+        let elapsedTime = Int(workoutManager.elapsedTime)
+        let countdownDuration = sessionDataManager.originalCountdownTimeSeconds
+        return CGFloat(elapsedTime) / CGFloat(countdownDuration)
     }
     
     private func handleStopSession() {
+        #if DEBUG
         print("Session stopped via gesture")
-        // Set epic time (if in countup mode, it's timerValue; else 0)
-        sessionDataManager.epicTime = isCountingUp ? timerValue : 0
-        // Stop timers
+        #endif
+        // End active session tracking
+        backgroundTimerManager.endActiveSession()
+        
+        // Set epic time based on current timer state
+        let (_, isCountup) = getCurrentTimerDisplay()
+        if isCountup {
+            // Calculate epic time as the time spent in countup mode only
+            let elapsedTime = Int(workoutManager.elapsedTime)
+            let countdownDuration = sessionDataManager.originalCountdownTimeSeconds
+            let epicTime = elapsedTime - countdownDuration
+            sessionDataManager.epicTime = max(0, epicTime)
+        } else {
+            // If still in countdown mode, epic time is 0
+            sessionDataManager.epicTime = 0
+        }
+        
+        // Pause workout session
+        if workoutManager.isActive && !workoutManager.isPaused {
+            workoutManager.pauseWorkout()
+        }
+        // Stop all timers
         timer?.invalidate()
+        timer = nil
         heartRateTimer?.invalidate()
+        heartRateTimer = nil
+        
+        // Stop heart rate monitoring
+        healthKitManager.stopHeartRateMonitoring()
         // Navigate to pause screen (same as pause for now)
         navigationManager.goToScreen(.activityStoppedOrPaused)
     }
@@ -172,7 +260,8 @@ struct CountdownActivatedScreen: View {
                 // Foreground content
                 VStack(spacing: 0) {
                     // Timer
-                    Text(formatTimer(timerValue, isCountup: isCountingUp))
+                    let (timerValue, isCountup) = getCurrentTimerDisplay()
+                    Text(formatTimer(timerValue, isCountup: isCountup))
                         .font(.system(size: timerFontSize, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -259,7 +348,7 @@ struct CountdownActivatedScreen: View {
 
                     // Heart Rate
                     HStack(spacing: 8) {
-                        if let hr = heartRate {
+                        if healthKitManager.isHeartRatePermissionGranted, let hr = heartRate, hr > 0 {
                             if #available(watchOS 11.0, *) {
                                 Image(systemName: "heart.fill")
                                     .foregroundColor(.red)
@@ -274,7 +363,7 @@ struct CountdownActivatedScreen: View {
                         } else {
                             Image(systemName: "heart.slash")
                                 .foregroundColor(.gray)
-                            Text("No HR")
+                            Text("-- BPM")
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.gray)
                         }
@@ -305,7 +394,9 @@ struct CountdownActivatedScreen: View {
                 VStack {
                     HStack {
                         Button(action: {
+                            #if DEBUG
                             print("Stop button tapped")
+                            #endif
                             handleStopSession()
                         }) {
                             Image(systemName: "stop.circle.fill")
@@ -321,60 +412,126 @@ struct CountdownActivatedScreen: View {
                     }
                     Spacer()
                 }
+                
+
             }
             .ignoresSafeArea()
             .onAppear {
-                // Only reset session tracking if we don't have any existing session data
-                // This prevents resetting when continuing from a paused session
-                if sessionDataManager.accumulatedSessionTime == 0 && sessionDataManager.HRArray.isEmpty {
+                #if DEBUG
+                print("=== COUNTDOWN ACTIVATED SCREEN: onAppear started ===")
+                print("Navigation source: \(navigationSource)")
+                print("Workout manager isActive: \(workoutManager.isActive)")
+                print("Session data manager accumulated time: \(sessionDataManager.accumulatedSessionTime)")
+                print("Session data manager HR array count: \(sessionDataManager.HRArray.count)")
+                #endif
+                
+                // Start workout session if not already active
+                if !workoutManager.isActive {
+                    #if DEBUG
+                    print("=== COUNTDOWN ACTIVATED SCREEN: Starting workout session ===")
+                    #endif
+                    workoutManager.startWorkout()
+                    
+                    // Wait for workout session to be active before enabling Water Lock
+                    // Use a small delay to ensure the workout session is fully started
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        #if DEBUG
+                        print("=== COUNTDOWN ACTIVATED SCREEN: Enabling Water Lock mode (delayed) ===")
+                        print("Workout manager isActive: \(self.workoutManager.isActive)")
+                        print("Workout state: \(self.workoutManager.workoutState)")
+                        #endif
+                        self.waterLockManager.enableWaterLock()
+                    }
+                } else {
+                    // Workout session is already active, enable Water Lock immediately
+                    #if DEBUG
+                    print("=== COUNTDOWN ACTIVATED SCREEN: Workout already active, enabling Water Lock immediately ===")
+                    #endif
+                    waterLockManager.enableWaterLock()
+                }
+                
+                // Determine if this is a new session or continuing from pause
+                // A new session is when we have no original countdown time set
+                let isNewSession = sessionDataManager.originalCountdownTimeSeconds == 0
+                
+                #if DEBUG
+                print("=== COUNTDOWN ACTIVATED SCREEN: Session Detection ===")
+                print("HRArray.isEmpty: \(sessionDataManager.HRArray.isEmpty)")
+                print("HRArray.count: \(sessionDataManager.HRArray.count)")
+                print("originalCountdownTimeSeconds: \(sessionDataManager.originalCountdownTimeSeconds)")
+                print("isNewSession: \(isNewSession)")
+                print("=============================================")
+                #endif
+                
+                if isNewSession {
+                    #if DEBUG
+                    print("=== COUNTDOWN ACTIVATED SCREEN: Resetting session tracking (new session) ===")
+                    #endif
                     // This is a completely new session
                     sessionDataManager.resetSessionTracking()
                     // Set the original countdown time for new sessions
                     sessionDataManager.originalCountdownTimeSeconds = getInitialTimerValue()
-                }
-                
-                // Timer setup
-                totalDuration = sessionDataManager.originalCountdownTimeSeconds > 0 ? 
-                    sessionDataManager.originalCountdownTimeSeconds : getInitialTimerValue()
-                
-                // Restore timer state from global properties
-                let elapsed = sessionDataManager.accumulatedSessionTime
-                if sessionDataManager.currentTimerMode == "Countdown" && elapsed < totalDuration {
-                    // Still in countdown mode
-                    timerValue = totalDuration - elapsed
-                    isCountingUp = false
+                    #if DEBUG
+                    print("=== COUNTDOWN ACTIVATED SCREEN: Set original countdown time: \(sessionDataManager.originalCountdownTimeSeconds) ===")
+                    #endif
                 } else {
-                    // In countup mode or countdown finished
-                    timerValue = elapsed - totalDuration
-                    isCountingUp = true
-                    sessionDataManager.currentTimerMode = "Countup"
+                    #if DEBUG
+                    print("=== COUNTDOWN ACTIVATED SCREEN: Continuing existing session ===")
+                    print("Accumulated time: \(sessionDataManager.accumulatedSessionTime)")
+                    print("HR array count: \(sessionDataManager.HRArray.count)")
+                    print("Original countdown time: \(sessionDataManager.originalCountdownTimeSeconds)")
+                    #endif
+                    
+                    // When continuing a session, preserve HRArray but reset epicTime for the new session
+                    sessionDataManager.epicTime = 0
                 }
                 
-                // Debug logging for timer state restoration
-                print("=== COUNTDOWN ACTIVATED SCREEN TIMER RESTORATION ===")
+                // Set the countdown duration if not already set
+                if sessionDataManager.originalCountdownTimeSeconds == 0 {
+                    sessionDataManager.originalCountdownTimeSeconds = getInitialTimerValue()
+                }
+                
+                // Debug logging for timer state
+                #if DEBUG
+                print("=== COUNTDOWN ACTIVATED SCREEN TIMER SETUP ===")
                 print("originalCountdownTimeSeconds: \(sessionDataManager.originalCountdownTimeSeconds)")
-                print("currentTimerMode: \(sessionDataManager.currentTimerMode)")
-                print("accumulatedSessionTime: \(sessionDataManager.accumulatedSessionTime)")
-                print("totalDuration: \(totalDuration)")
-                print("timerValue: \(timerValue)")
-                print("isCountingUp: \(isCountingUp)")
-                print("==================================================")
+                print("workoutManager.elapsedTime: \(workoutManager.elapsedTime)")
+                let (displayValue, isCountup) = getCurrentTimerDisplay()
+                print("displayValue: \(displayValue), isCountup: \(isCountup)")
+                print("=============================================")
+                #endif
                 
-                didPlayNotification = isCountingUp
+                let (_, isCurrentlyCountingUp) = getCurrentTimerDisplay()
+                didPlayNotification = isCurrentlyCountingUp
                 startTimer()
-                // Heart rate setup
-                startHeartRateUpdates()
-                // Check system water lock state
-                waterLockManager.checkSystemWaterLockState()
-                // Set up periodic water lock state checking
-                Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-                    waterLockManager.checkSystemWaterLockState()
-                }
+                // Start heart rate monitoring using shared manager
+                startHeartRateMonitoring()
             }
             .onDisappear {
-                // Stop timers
+                // Pause workout session if active
+                if workoutManager.isActive && !workoutManager.isPaused {
+                    workoutManager.pauseWorkout()
+                }
+                // End active session tracking
+                backgroundTimerManager.endActiveSession()
+                
+                // Stop all timers
                 timer?.invalidate()
+                timer = nil
                 heartRateTimer?.invalidate()
+                heartRateTimer = nil
+                
+                // Stop heart rate monitoring
+                healthKitManager.stopHeartRateMonitoring()
+                
+                // Disable Water Lock mode when leaving the screen
+                waterLockManager.disableWaterLock()
+            }
+            .onChange(of: backgroundTimerManager.isInBackground) { isInBackground in
+                if !isInBackground {
+                    // Screen has woken up, update timer display
+                    updateTimerDisplayFromBackground()
+                }
             }
         }
     }
@@ -383,43 +540,115 @@ struct CountdownActivatedScreen: View {
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if !isCountingUp {
-                if timerValue > 0 {
-                    timerValue -= 1
-                    sessionDataManager.accumulatedSessionTime += 1
-                    checkFlagBounce()
-                } else if !didPlayNotification {
-                    isCountingUp = true
-                    timerValue = 0
-                    sessionDataManager.currentTimerMode = "Countup"
-                    WKInterfaceDevice.current().play(.notification)
-                    didPlayNotification = true
-                }
-            } else {
-                timerValue += 1
-                sessionDataManager.accumulatedSessionTime += 1
-                checkFlagBounce()
-            }
+            // Update session data to match workout manager
+            updateSessionData()
+            
+            // Update timer mode separately to avoid view update issues
+            updateTimerMode()
+            
+            // Check if we just transitioned from countdown to countup
+            handleCountdownToCountupTransition()
+            
+            self.checkFlagBounce()
         }
     }
+    
+    private func updateTimerDisplayFromBackground() {
+        // Update session data to match workout manager
+        updateSessionData()
+        
+        let (displayValue, isCountup) = getCurrentTimerDisplay()
+        
+        #if DEBUG
+        print("🔄 Timer display updated from background - value: \(displayValue), mode: \(isCountup ? "countup" : "countdown")")
+        #endif
+    }
+    
     private func checkFlagBounce() {
         let progress = progressFraction()
         for idx in 0..<flagCheckpoints.count {
             if !showFlagBounce[idx] && progress >= flagCheckpoints[idx] {
-                showFlagBounce[idx] = true
+                DispatchQueue.main.async {
+                    self.showFlagBounce[idx] = true
+                }
             }
         }
     }
 
-    // MARK: - Heart Rate Logic (Simulated)
-    private func startHeartRateUpdates() {
+    // MARK: - Heart Rate Monitoring
+    private func getAverageHeartRate() -> Int {
+        let hrArray = sessionDataManager.HRArray
+        
+        // If we have 3 or more recent values, calculate average of the last 3
+        if hrArray.count >= 3 {
+            let lastThree = Array(hrArray.suffix(3))
+            let validReadings = lastThree.filter { $0 > 0 } // Only count valid readings (> 0)
+            
+            if validReadings.count > 0 {
+                let average = validReadings.reduce(0, +) / validReadings.count
+                return average
+            }
+        }
+        
+        // If we have 1-2 recent values, use the most recent valid one
+        if hrArray.count >= 1 {
+            let lastValid = hrArray.reversed().first { $0 > 0 }
+            if let valid = lastValid {
+                return valid
+            }
+        }
+        
+        // Default to 80 BPM if no valid readings available
+        return 80
+    }
+    
+    private func startHeartRateMonitoring() {
+        // Always use a timer-based approach to ensure consistent 1-second intervals
         heartRateTimer?.invalidate()
         heartRateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            // Simulate heart rate update (replace with HealthKit in real app)
-            let hr = Int.random(in: 55...130)
-            heartRate = hr
-            sessionDataManager.HRArray.append(hr)
+            DispatchQueue.main.async {
+                if self.healthKitManager.isHeartRatePermissionGranted {
+                    // If we have a current heart rate reading, use it
+                    if let currentHR = self.heartRate, currentHR > 0 {
+                        self.sessionDataManager.HRArray.append(currentHR)
+                        #if DEBUG
+                        print("=== HEART RATE MONITORING: Added current HR value \(currentHR), total count: \(self.sessionDataManager.HRArray.count) ===")
+                        #endif
+                    } else {
+                        // No current reading available, use average of recent values
+                        let avgHR = self.getAverageHeartRate()
+                        self.sessionDataManager.HRArray.append(avgHR)
+                        #if DEBUG
+                        print("=== HEART RATE MONITORING: Added average HR value \(avgHR), total count: \(self.sessionDataManager.HRArray.count) ===")
+                        #endif
+                    }
+                } else {
+                    // Permission denied - use average of recent values or default
+                    let avgHR = self.getAverageHeartRate()
+                    self.sessionDataManager.HRArray.append(avgHR)
+                    #if DEBUG
+                    print("=== FALLBACK HEART RATE: Added average HR value \(avgHR), total count: \(self.sessionDataManager.HRArray.count) ===")
+                    #endif
+                }
+            }
         }
+        
+        // Start HealthKit monitoring to update the current heart rate value
+        if healthKitManager.isHeartRatePermissionGranted {
+                healthKitManager.startHeartRateMonitoring { heartRateValue in
+                    DispatchQueue.main.async {
+                        // Update the UI
+                        self.heartRate = heartRateValue
+                        
+                        // ✅ CORRECTED CODE:
+                        // No 'if let' is needed.
+                        // We add a check for > 0 to avoid saving invalid data.
+                        if heartRateValue > 0 {
+                            self.workoutManager.addHeartRateData(heartRateValue, timestamp: Date())
+                        }
+                    }
+                }
+            }
     }
 }
 
@@ -453,4 +682,5 @@ extension Color {
 #Preview {
     CountdownActivatedScreen(navigationManager: NavigationManager(), navigationSource: .selectSession)
         .environmentObject(SessionDataManager())
+        .environmentObject(BackgroundTimerManager.shared)
 } 
