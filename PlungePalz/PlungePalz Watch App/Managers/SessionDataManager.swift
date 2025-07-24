@@ -8,6 +8,7 @@ class SessionDataManager: ObservableObject {
     @Published var accumulatedSessionTime: Int = 0
     @Published var originalCountdownTimeSeconds: Int = 0
     @Published var currentTimerMode: String = "Countdown" // "Countdown" or "Countup"
+    @StateObject private var apiManager = APIs.shared
 
     func fetchLastSessionData() {
         // Get the stored userId from UserDefaults
@@ -17,7 +18,7 @@ class SessionDataManager: ObservableObject {
         }
         
         // Create the URL with the userId as a query parameter
-        let baseURL = "https://d76hjali51.execute-api.us-east-1.amazonaws.com/SmartWatchActivitySaved_mvp_production/getStartupDataForSmartWatch"
+        let baseURL = apiManager.getStartupDataForSmartWatchEndpoint
         let urlString = "\(baseURL)?userId=\(userId)"
         
         guard let url = URL(string: urlString) else {

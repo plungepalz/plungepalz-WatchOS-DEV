@@ -18,7 +18,7 @@
                BlueprintIdentifier = "ACAC69022DF15E5900BFA6A7"
                BuildableName = "PlungePalz Watch App.app"
                BlueprintName = "PlungePalz Watch App"
-               ReferencedContainer = "container:PlungePalz.xcodeproj">
+               ReferencedContainer = "container:PlungePalz_DEV.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -32,7 +32,7 @@
                BlueprintIdentifier = "ACAC68FC2DF15E5900BFA6A7"
                BuildableName = "PlungePalz.app"
                BlueprintName = "PlungePalz"
-               ReferencedContainer = "container:PlungePalz.xcodeproj">
+               ReferencedContainer = "container:PlungePalz_DEV.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -52,7 +52,7 @@
                BlueprintIdentifier = "ACAC69112DF15E5A00BFA6A7"
                BuildableName = "PlungePalz Watch AppTests.xctest"
                BlueprintName = "PlungePalz Watch AppTests"
-               ReferencedContainer = "container:PlungePalz.xcodeproj">
+               ReferencedContainer = "container:PlungePalz_DEV.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -63,7 +63,7 @@
                BlueprintIdentifier = "ACAC691B2DF15E5A00BFA6A7"
                BuildableName = "PlungePalz Watch AppUITests.xctest"
                BlueprintName = "PlungePalz Watch AppUITests"
-               ReferencedContainer = "container:PlungePalz.xcodeproj">
+               ReferencedContainer = "container:PlungePalz_DEV.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -85,7 +85,7 @@
             BlueprintIdentifier = "ACAC69022DF15E5900BFA6A7"
             BuildableName = "PlungePalz Watch App.app"
             BlueprintName = "PlungePalz Watch App"
-            ReferencedContainer = "container:PlungePalz.xcodeproj">
+            ReferencedContainer = "container:PlungePalz_DEV.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -102,7 +102,7 @@
             BlueprintIdentifier = "ACAC69022DF15E5900BFA6A7"
             BuildableName = "PlungePalz Watch App.app"
             BlueprintName = "PlungePalz Watch App"
-            ReferencedContainer = "container:PlungePalz.xcodeproj">
+            ReferencedContainer = "container:PlungePalz_DEV.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

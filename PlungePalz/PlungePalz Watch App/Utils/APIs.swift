@@ -27,6 +27,10 @@ class APIs: ObservableObject {
     var verifyPairingCodeEndpoint: String {
         return "\(baseURL)/AppleWatch/VerifyPairingCode_AppleWatchSide"
     }
+
+    var getStartupDataForSmartWatchEndpoint: String {
+        return "\(baseURL)/getStartupDataForSmartWatch"
+    }
     
     
     // MARK: - HTTP Headers

@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "PlungePalz_WatchOS_logo.png",
+      "filename" : "PlungePalz_WatchOS_logo_dev.png",
       "idiom" : "universal",
       "platform" : "watchos",
       "size" : "1024x1024"

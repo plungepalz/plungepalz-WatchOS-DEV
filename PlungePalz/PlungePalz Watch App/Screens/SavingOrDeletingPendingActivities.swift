@@ -30,8 +30,8 @@ struct SavingOrDeletingPendingActivities: View {
     
     @State private var currentState: CountdownState = .initialCountdown
     @StateObject private var screenManager = WatchScreenManager()
-    @State private var countdown: Double = 10
-    @State private var totalTime: Double = 10
+    @State private var countdown: Double = 5
+    @State private var totalTime: Double = 5
     @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
     
     // Get pending requests from UserDefaults
@@ -181,8 +181,8 @@ struct SavingOrDeletingPendingActivities: View {
         case .failed:
             // Reset for another attempt
             currentState = .initialCountdown
-            countdown = 10
-            totalTime = 10
+            countdown = 5
+            totalTime = 5
             startTimer()
         case .apiCalling:
             // No action needed during apiCalling state
