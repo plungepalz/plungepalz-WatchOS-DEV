@@ -170,11 +170,12 @@ struct SetTemperatureScreen: View {
 
                 sessionDataManager.lastSessionData?["lastSessionWaterTemp"] = tempString
                 sessionDataManager.lastSessionData?["unitOfMeasure"] = unitString
-                navigationManager.goToScreen(.countdownActivated)
+                navigationManager.originalNavigationSource = .setTemperature
+                navigationManager.goToScreen(.getReadyCountdownTimer)
             }) {
                 HStack {
                     Spacer(minLength: 0)
-                    Text("NEXT")
+                    Text("START")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     Image(systemName: "arrow.forward")

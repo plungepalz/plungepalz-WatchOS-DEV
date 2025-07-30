@@ -39,8 +39,9 @@ struct SelectSessionScreen: View {
                             // print("=== SELECT SESSION SCREEN: Use Last button tapped ===")
                             // print("lastSession data: \(lastSession)")
                             selectedOption = .useLast
-                            // print("=== SELECT SESSION SCREEN: Navigating to countdownActivated ===")
-                            navigationManager.goToScreen(.countdownActivated)
+                            navigationManager.originalNavigationSource = .selectSession
+                            // print("=== SELECT SESSION SCREEN: Navigating to getReadyCountdownTimer ===")
+                            navigationManager.goToScreen(.getReadyCountdownTimer)
                         }) {
                             OptionContainer(
                                 iconName: "repeat",

@@ -285,6 +285,9 @@ struct HomeScreen: View {
             
             // Request HealthKit permissions on app launch
             requestHealthKitPermissions()
+            
+            // Fetch get ready timer settings
+            fetchGetReadyTimerSettings()
         }
         .onChange(of: connectionStatus) { newStatus in
             if newStatus == .connected {
@@ -302,6 +305,25 @@ struct HomeScreen: View {
                 } else {
                     // print("❌ HealthKit heart rate permission denied")
                 }
+            }
+        }
+    }
+    
+    // MARK: - Get Ready Timer Settings
+    private func fetchGetReadyTimerSettings() {
+        APIs.shared.fetchGetReadyTimerSettings { getReadySeconds in
+            if let getReadySeconds = getReadySeconds {
+                // Store the get ready timer value in UserDefaults
+                UserDefaults.standard.set(getReadySeconds, forKey: "get_ready_timer_seconds")
+                #if DEBUG
+                print("Get ready timer settings saved: \(getReadySeconds) seconds")
+                #endif
+            } else {
+                // Store default value of 5 seconds
+                UserDefaults.standard.set(5, forKey: "get_ready_timer_seconds")
+                #if DEBUG
+                print("Get ready timer settings using default: 5 seconds")
+                #endif
             }
         }
     }

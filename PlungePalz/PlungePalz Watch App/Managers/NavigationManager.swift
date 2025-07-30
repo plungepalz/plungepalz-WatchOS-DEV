@@ -14,12 +14,13 @@ enum AppScreen: Int, CaseIterable {
     case selectSession = 3
     case setTimer = 4
     case setTemperature = 5
-    case countdownActivated = 6
-    case activityStoppedOrPaused = 7
-    case sessionDeleted = 8
-    case sessionRecap = 9
-    case pendingSaveSessions = 10
-    case savingOrDeletingPendingActivities = 11
+    case getReadyCountdownTimer = 6
+    case countdownActivated = 7
+    case activityStoppedOrPaused = 8
+    case sessionDeleted = 9
+    case sessionRecap = 10
+    case pendingSaveSessions = 11
+    case savingOrDeletingPendingActivities = 12
     
     var title: String {
         switch self {
@@ -33,6 +34,8 @@ enum AppScreen: Int, CaseIterable {
             return "Set Timer"
         case .setTemperature:
             return "Set Temperature"
+        case .getReadyCountdownTimer:
+            return "Get Ready Countdown Timer"
         case .countdownActivated:
             return "Countdown Activated"
         case .activityStoppedOrPaused:
@@ -58,6 +61,10 @@ class NavigationManager: ObservableObject {
     @Published var currentScreen: AppScreen = .home
     @Published var previousScreen: AppScreen = .home
     @Published var activityMode: SavingOrDeletingPendingActivities.ActivityMode = .saving
+    @Published var originalNavigationSource: CountdownActivatedScreen.NavigationSource = .setTemperature
+    
+    // Navigation stack to track actual navigation history
+    private var navigationStack: [AppScreen] = [.home]
     
     func nextScreen() {
         previousScreen = currentScreen
@@ -71,16 +78,28 @@ class NavigationManager: ObservableObject {
     }
     
     func goToPreviousScreen() {
-        previousScreen = currentScreen
-        let currentIndex = currentScreen.rawValue
-        if currentIndex > 1 {
-            currentScreen = AppScreen(rawValue: currentIndex - 1) ?? .home
+        // Remove current screen from stack
+        if !navigationStack.isEmpty {
+            navigationStack.removeLast()
+        }
+        
+        // Get the previous screen from the stack
+        if let previousScreenFromStack = navigationStack.last {
+            previousScreen = currentScreen
+            currentScreen = previousScreenFromStack
+        } else {
+            // Fallback to home if stack is empty
+            previousScreen = currentScreen
+            currentScreen = .home
         }
     }
     
     func goToHome() {
         previousScreen = currentScreen
         currentScreen = .home
+        
+        // Clear navigation stack and add home
+        navigationStack = [.home]
     }
     
     func goToScreen(_ screen: AppScreen) {
@@ -89,6 +108,10 @@ class NavigationManager: ObservableObject {
         // print("To screen: \(screen.title) (\(screen.rawValue))")
         previousScreen = currentScreen
         currentScreen = screen
+        
+        // Add to navigation stack
+        navigationStack.append(screen)
+        
         // print("=== NAVIGATION MANAGER: Screen change completed ===")
     }
 } 

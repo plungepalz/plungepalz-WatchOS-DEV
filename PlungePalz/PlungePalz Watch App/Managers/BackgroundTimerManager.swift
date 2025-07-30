@@ -18,6 +18,12 @@ class BackgroundTimerManager: ObservableObject {
     @Published var lastHeartRateBeforeSleep: Int?
     @Published var isActiveSession: Bool = false
     
+    // MARK: - Get Ready Timer Properties
+    @Published var isGetReadyTimerActive: Bool = false
+    @Published var getReadyTimerStartTime: Date?
+    @Published var getReadyTimerDuration: Double = 5.0
+    @Published var getReadyTimerCompletion: (() -> Void)?
+    
     // MARK: - Private Properties
     private var backgroundTask: WKRefreshBackgroundTask?
     private var backgroundTimer: Timer?
@@ -47,6 +53,45 @@ class BackgroundTimerManager: ObservableObject {
         #if DEBUG
         print("🔄 Active session ended")
         #endif
+    }
+    
+    // MARK: - Get Ready Timer Methods
+    func startGetReadyTimer(duration: Double, completion: @escaping () -> Void) {
+        isGetReadyTimerActive = true
+        getReadyTimerStartTime = Date()
+        getReadyTimerDuration = duration
+        getReadyTimerCompletion = completion
+        
+        #if DEBUG
+        print("🔄 Get Ready Timer: Started with duration \(duration) seconds")
+        #endif
+        
+        // Start background timer if not already running
+        if backgroundTimer == nil {
+            startBackgroundTimer()
+        }
+    }
+    
+    func stopGetReadyTimer() {
+        isGetReadyTimerActive = false
+        getReadyTimerStartTime = nil
+        getReadyTimerCompletion = nil
+        
+        #if DEBUG
+        print("🔄 Get Ready Timer: Stopped")
+        #endif
+    }
+    
+    func getGetReadyTimerRemainingTime() -> Double {
+        guard isGetReadyTimerActive,
+              let startTime = getReadyTimerStartTime else {
+            return 0.0
+        }
+        
+        let elapsed = Date().timeIntervalSince(startTime)
+        let remaining = max(0.0, getReadyTimerDuration - elapsed)
+        
+        return remaining
     }
     
     func handleAppDidEnterBackground() {
@@ -111,13 +156,16 @@ class BackgroundTimerManager: ObservableObject {
             "originalCountdownTimeSeconds": sessionManager.originalCountdownTimeSeconds,
             "epicTime": sessionManager.epicTime ?? 0,
             "timestamp": Date().timeIntervalSince1970,
-            "isActiveSession": isActiveSession
+            "isActiveSession": isActiveSession,
+            "isGetReadyTimerActive": isGetReadyTimerActive,
+            "getReadyTimerStartTime": getReadyTimerStartTime?.timeIntervalSince1970 ?? 0,
+            "getReadyTimerDuration": getReadyTimerDuration
         ]
         
         UserDefaults.standard.set(state, forKey: "timer_background_state")
         
         #if DEBUG
-        print("🔄 Background: Stored timer state - accumulated: \(sessionManager.accumulatedSessionTime), mode: \(sessionManager.currentTimerMode)")
+        print("🔄 Background: Stored timer state - accumulated: \(sessionManager.accumulatedSessionTime), mode: \(sessionManager.currentTimerMode), getReady: \(isGetReadyTimerActive)")
         #endif
     }
     
@@ -142,6 +190,12 @@ class BackgroundTimerManager: ObservableObject {
     }
     
     private func updateBackgroundTimer() {
+        // Handle get ready timer
+        if isGetReadyTimerActive {
+            updateGetReadyTimer()
+        }
+        
+        // Handle active session timer
         guard let sessionManager = sessionDataManager else { return }
         
         // Update accumulated session time
@@ -158,6 +212,23 @@ class BackgroundTimerManager: ObservableObject {
         #if DEBUG
         print("🔄 Background: Timer updated - accumulated: \(sessionManager.accumulatedSessionTime)")
         #endif
+    }
+    
+    private func updateGetReadyTimer() {
+        let remaining = getGetReadyTimerRemainingTime()
+        
+        if remaining <= 0 {
+            // Get ready timer completed
+            #if DEBUG
+            print("🔄 Get Ready Timer: Completed in background")
+            #endif
+            
+            // Execute completion on main thread
+            DispatchQueue.main.async { [weak self] in
+                self?.getReadyTimerCompletion?()
+                self?.stopGetReadyTimer()
+            }
+        }
     }
     
     private func updateTimerModeIfNeeded() {
@@ -221,6 +292,9 @@ class BackgroundTimerManager: ObservableObject {
         // Update timer mode if needed
         updateTimerModeIfNeeded()
         
+        // Handle get ready timer restoration
+        restoreGetReadyTimerState()
+        
         // Clear stored data
         backgroundStartTime = nil
         lastHeartRateBeforeSleep = nil
@@ -228,5 +302,24 @@ class BackgroundTimerManager: ObservableObject {
         #if DEBUG
         print("🔄 Foreground: Final accumulated time: \(sessionManager.accumulatedSessionTime)")
         #endif
+    }
+    
+    private func restoreGetReadyTimerState() {
+        // Check if get ready timer was active and should be completed
+        if isGetReadyTimerActive {
+            let remaining = getGetReadyTimerRemainingTime()
+            
+            if remaining <= 0 {
+                // Get ready timer completed while in background
+                #if DEBUG
+                print("🔄 Foreground: Get Ready Timer completed while in background")
+                #endif
+                
+                DispatchQueue.main.async { [weak self] in
+                    self?.getReadyTimerCompletion?()
+                    self?.stopGetReadyTimer()
+                }
+            }
+        }
     }
 } 

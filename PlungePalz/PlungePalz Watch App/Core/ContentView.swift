@@ -25,8 +25,11 @@ struct ContentView: View {
                 SetTimerScreen(navigationManager: navigationManager)
             case .setTemperature:
                 SetTemperatureScreen(navigationManager: navigationManager)
+            case .getReadyCountdownTimer:
+                GetReadyCountdownTimer(navigationManager: navigationManager)
             case .countdownActivated:
-                let source: CountdownActivatedScreen.NavigationSource = navigationManager.previousScreen == .selectSession ? .selectSession : .setTemperature
+                // Use the original navigation source that was set when the user started the flow
+                let source: CountdownActivatedScreen.NavigationSource = navigationManager.originalNavigationSource
                 CountdownActivatedScreen(navigationManager: navigationManager, navigationSource: source)
             case .activityStoppedOrPaused:
                 ActivityStoppedOrPausedScreen(navigationManager: navigationManager)

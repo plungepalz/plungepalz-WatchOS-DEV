@@ -31,6 +31,10 @@ class APIs: ObservableObject {
     var getStartupDataForSmartWatchEndpoint: String {
         return "\(baseURL)/getStartupDataForSmartWatch"
     }
+
+    var getUserCountdownTimerSettings: String {
+        return "\(baseURL)/AppleWatch/getUserCountdownTimerSettings"
+    }
     
     
     // MARK: - HTTP Headers
@@ -138,5 +142,77 @@ class APIs: ObservableObject {
             let errorMessage = data != nil ? String(data: data!, encoding: .utf8) ?? "Unknown error" : "HTTP \(response.statusCode)"
             return (false, errorMessage)
         }
+    }
+    
+    // MARK: - Get Ready Timer API
+    func fetchGetReadyTimerSettings(completion: @escaping (Int?) -> Void) {
+        // Get userId from UserDefaults
+        guard let userId = UserDefaults.standard.string(forKey: "userId") else {
+            #if DEBUG
+            print("No userId found in UserDefaults, skipping get ready timer API call")
+            #endif
+            completion(nil) // No userId, don't make API call
+            return
+        }
+        
+        // Create URL with accountId query parameter
+        var urlComponents = URLComponents(string: getUserCountdownTimerSettings)
+        urlComponents?.queryItems = [URLQueryItem(name: "accountId", value: userId)]
+        
+        guard let url = urlComponents?.url else {
+            #if DEBUG
+            print("Failed to create URL with accountId parameter")
+            #endif
+            completion(nil)
+            return
+        }
+        
+        // Create GET request
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = requestTimeout
+        
+        // Add default headers
+        for (key, value) in defaultHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        #if DEBUG
+        print("Making GET request to: \(url)")
+        #endif
+        
+        // Make the request
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                let result = self.handleAPIResponse(response as? HTTPURLResponse, data: data, error: error)
+                
+                if result.success, let data = data {
+                    do {
+                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let getReadySeconds = json["get_ready_timer_seconds"] as? Int {
+                            #if DEBUG
+                            print("Successfully fetched get ready timer: \(getReadySeconds) seconds")
+                            #endif
+                            completion(getReadySeconds)
+                        } else {
+                            #if DEBUG
+                            print("Invalid JSON response format")
+                            #endif
+                            completion(5)
+                        }
+                    } catch {
+                        #if DEBUG
+                        print("JSON parsing error: \(error)")
+                        #endif
+                        completion(5)
+                    }
+                } else {
+                    #if DEBUG
+                    print("API request failed: \(result.message)")
+                    #endif
+                    completion(5)
+                }
+            }
+        }.resume()
     }
 } 

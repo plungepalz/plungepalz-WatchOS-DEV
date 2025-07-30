@@ -281,6 +281,82 @@ struct WatchGlobalUIConfig {
         }
     }
 
+    // ==== 1D. GetReadyCountdownTimer ====
+    struct GetReadyCountdownTimer {
+
+        static func titleTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 5
+            case .regular: return 15
+            case .ultra: return 20
+            }
+        }
+
+        static func titleFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 20
+            case .ultra: return 22
+            }
+        }
+
+        static func circleTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 10
+            case .regular: return 10
+            case .ultra: return 15
+            }
+        }
+
+        static func circleSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 90
+            case .regular: return 95
+            case .ultra: return 100
+            }
+        }
+
+        static func countdownFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 32
+            case .regular: return 36
+            case .ultra: return 40
+            }
+        }
+
+        static func buttonTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 10
+            case .regular: return 10
+            case .ultra: return 20
+            }
+        }
+
+        static func buttonFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func buttonWidth(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 90
+            case .regular: return 120
+            case .ultra: return 120
+            }
+        }
+
+        static func buttonHeight(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 30
+            case .regular: return 40
+            case .ultra: return 40
+            }
+        }
+    }
+
     // ==== 2. ConnectDeviceScreen ====
     struct ConnectDeviceScreen {
 
