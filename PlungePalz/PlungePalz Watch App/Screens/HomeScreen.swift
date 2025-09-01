@@ -18,14 +18,20 @@ struct HomeScreen: View {
     
     // Placeholder for connection status
     enum ConnectionStatus {
-        case connected, connecting, notPaired, noWiFi
+        case connecting
+        case subscribed      // NEW: API success + isUserSubscribed = true
+        case notSubscribed   // NEW: API success + isUserSubscribed = false
+        case notPaired       // No userId in storage
+        case noWiFi          // Network error
         
         var iconName: String {
             switch self {
-            case .connected:
+            case .subscribed:
                 return "checkmark.icloud.fill"
             case .connecting:
                 return "wifi"
+            case .notSubscribed:
+                return "exclamationmark.triangle.fill"
             case .notPaired:
                 return "person.crop.circle.badge.exclamationmark.fill"
             case .noWiFi:
@@ -35,10 +41,12 @@ struct HomeScreen: View {
         
         var statusText: String {
             switch self {
-            case .connected:
-                return "Connected"
+            case .subscribed:
+                return "Subscribed"
             case .connecting:
                 return "Connecting..."
+            case .notSubscribed:
+                return "Not Subscribed"
             case .notPaired:
                 return "Not Paired"
             case .noWiFi:
@@ -48,10 +56,27 @@ struct HomeScreen: View {
         
         var iconColor: Color {
             switch self {
-            case .connected:
+            case .subscribed:
                 return .green
             case .connecting:
                 return .yellow
+            case .notSubscribed:
+                return .red
+            case .notPaired:
+                return .yellow
+            case .noWiFi:
+                return .red
+            }
+        }
+
+        var statusTextColor: Color {
+            switch self {
+            case .subscribed:
+                return .green
+            case .connecting:
+                return Color(red: 0.4, green: 0.8, blue: 1.0) // Same blue as connecting icon
+            case .notSubscribed:
+                return .red
             case .notPaired:
                 return .yellow
             case .noWiFi:
@@ -64,18 +89,16 @@ struct HomeScreen: View {
     @State private var connectionStatus: ConnectionStatus = .connecting
     @State private var wifiSignalStrength = 1
     
-    // Dummy API behavior
-    private func simulateConnection() {
+    // NEW: API behavior
+    private func performConnection() {
         // Start with connecting state
         connectionStatus = .connecting
         
         // Start WiFi animation
         startWifiAnimation()
         
-        // After 2 seconds, change to connected state
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            connectionStatus = .connected
-        }
+        // Call the SessionDataManager to fetch data
+        sessionDataManager.fetchLastSessionData()
     }
     
     private func startWifiAnimation() {
@@ -97,6 +120,30 @@ struct HomeScreen: View {
         }
         return connectionStatus.iconName
     }
+
+    // MARK: - Check Subscription Status
+    private func updateConnectionStatusBasedOnSubscription() {
+        // Always check subscription status when this function is called
+        let isUserSubscribed = UserDefaults.standard.bool(forKey: "isUserSubscribed")
+        
+        #if DEBUG
+        print("📊 HomeScreen: Checking subscription status, isUserSubscribed = \(isUserSubscribed)")
+        #endif
+        
+        // Check if we have valid session data (indicates successful API call)
+        if sessionDataManager.lastSessionData != nil {
+            // API call was successful, set status based on subscription
+            if isUserSubscribed {
+                connectionStatus = .subscribed
+            } else {
+                connectionStatus = .notSubscribed
+            }
+        } else {
+            // API call failed or no data - could be network issue  
+            connectionStatus = .noWiFi
+        }
+    }
+
     
     var body: some View {
         let screenSize = screenManager.currentScreenSize
@@ -148,7 +195,7 @@ struct HomeScreen: View {
                                 .foregroundStyle(Color(red: 0.4, green: 0.8, blue: 1.0))
                                 .padding(.top, bottomLogoSpacing)
                         }
-                    } else if connectionStatus == .connected {
+                    } else if connectionStatus == .subscribed {
                         if #available(watchOS 10.0, *) {
                             Image(systemName: "checkmark.icloud.fill")
                                 .font(.system(size: connectionStatusIconSize, weight: .bold))
@@ -177,7 +224,7 @@ struct HomeScreen: View {
                     }
                     Text(connectionStatus.statusText)
                         .watchAdaptivePoppinsFont(style: .title, weight: .bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(connectionStatus.statusTextColor)
                         .padding(.bottom, bottomLogoSpacing)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -197,8 +244,8 @@ struct HomeScreen: View {
                         .foregroundStyle(.white)
                         .padding(.trailing, chevronPadding)
                     HStack(spacing: chevronPadding) {
-                        // Connected or No WiFi
-                        if connectionStatus == .connected || connectionStatus == .noWiFi {
+                        // Subscribed or No WiFi
+                        if connectionStatus == .subscribed || connectionStatus == .noWiFi {
                             Image(systemName: "snowflake")
                                 .font(.system(size: connectionStatusIconSize, weight: .bold))
                                 .foregroundStyle(.white)
@@ -207,7 +254,7 @@ struct HomeScreen: View {
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
-                        } 
+                        }
                         // Not Paired
                         else if connectionStatus == .notPaired {
                             Image(systemName: "app.connected.to.app.below.fill")
@@ -218,7 +265,18 @@ struct HomeScreen: View {
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
-                    }
+                        }
+                        // Not Subscribed - show different button
+                        else if connectionStatus == .notSubscribed {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                .foregroundStyle(.white)
+                            Text("Subscribe")
+                                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
                     }
                     .padding(.vertical, plungeButtonVerticalPadding)
                     .padding(.horizontal, plungeButtonHorizontalPadding)
@@ -229,11 +287,26 @@ struct HomeScreen: View {
                         switch connectionStatus {
                         case .connecting:
                             // Do nothing while connecting
+                            #if DEBUG
+                            print("⏳ Still connecting, please wait...")
+                            #endif
                             break
-                        case .connected, .noWiFi:
+                        case .subscribed, .noWiFi:
+                            #if DEBUG
+                            print("✅ Navigating to select session")
+                            #endif
                             navigationManager.goToScreen(.selectSession)
                         case .notPaired:
+                            #if DEBUG
+                            print("📱 Navigating to connect device")
+                            #endif
                             navigationManager.goToScreen(.connectDevice)
+                        case .notSubscribed:
+                            #if DEBUG
+                            navigationManager.goToScreen(.notSubscribed)  // Navigate to NotSubscribed screen
+                            #endif
+                            // TODO: Navigate to subscription screen when implemented
+                            break
                         }
                     }
                     .opacity(connectionStatus == .connecting ? 0.5 : 1.0)
@@ -268,31 +341,38 @@ struct HomeScreen: View {
         .onAppear {
             // Check for stored userId in local memory
             let storedUserId = UserDefaults.standard.string(forKey: "userId")
-            // print("=== HOMESCREEN USER ID CHECK ===")
-            if let userId = storedUserId {
-                // print("✅ User ID found in local memory: \(userId)")
-                // User is paired, simulate connection process
-                simulateConnection()
+            
+            if let userId = storedUserId, !userId.isEmpty {
+                // Check if we already have session data
+                if sessionDataManager.lastSessionData != nil {
+                    // We already have data, just update the status based on current subscription
+                    #if DEBUG
+                    print("📊 HomeScreen: Already have session data, updating status")
+                    #endif
+                    updateConnectionStatusBasedOnSubscription()
+                } else {
+                    // No session data yet, perform full connection
+                    #if DEBUG
+                    print("✅ User ID found, starting connection process")
+                    #endif
+                    performConnection()
+                }
             } else {
-                // print("❌ No User ID found in local memory - user needs to pair device")
-                // User is not paired, set status immediately
+                #if DEBUG
+                print("❌ No User ID found - user needs to pair device")
+                #endif
                 connectionStatus = .notPaired
             }
-            // print("=================================")
 
-            // When the home screen is loaded, reset the session tracking
             sessionDataManager.resetSessionTracking()
-            
-            // Request HealthKit permissions on app launch
             requestHealthKitPermissions()
-            
-            // Fetch get ready timer settings
-            fetchGetReadyTimerSettings()
         }
-        .onChange(of: connectionStatus) { newStatus in
-            if newStatus == .connected {
-                sessionDataManager.fetchLastSessionData()
-            }
+        .onChange(of: sessionDataManager.lastSessionData) { _ in
+            // When session data changes, update connection status based on subscription
+            #if DEBUG
+            print("📊 HomeScreen: Session data changed, updating connection status")
+            #endif
+            updateConnectionStatusBasedOnSubscription()
         }
     }
     
@@ -305,25 +385,6 @@ struct HomeScreen: View {
                 } else {
                     // print("❌ HealthKit heart rate permission denied")
                 }
-            }
-        }
-    }
-    
-    // MARK: - Get Ready Timer Settings
-    private func fetchGetReadyTimerSettings() {
-        APIs.shared.fetchGetReadyTimerSettings { getReadySeconds in
-            if let getReadySeconds = getReadySeconds {
-                // Store the get ready timer value in UserDefaults
-                UserDefaults.standard.set(getReadySeconds, forKey: "get_ready_timer_seconds")
-                #if DEBUG
-                print("Get ready timer settings saved: \(getReadySeconds) seconds")
-                #endif
-            } else {
-                // Store default value of 5 seconds
-                UserDefaults.standard.set(5, forKey: "get_ready_timer_seconds")
-                #if DEBUG
-                print("Get ready timer settings using default: 5 seconds")
-                #endif
             }
         }
     }

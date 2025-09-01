@@ -1,8 +1,5 @@
 //
-//  ContentView.swift
-//  PlungePalz Watch App
-//
-//  Created by AJ Aviles on 6/4/25.
+//  Updated ContentView.swift - Add NotSubscribed Screen Case
 //
 
 import SwiftUI
@@ -19,6 +16,8 @@ struct ContentView: View {
                 HomeScreen(navigationManager: navigationManager)
             case .connectDevice:
                 ConnectDeviceScreen(navigationManager: navigationManager)
+            case .notSubscribed:                    // NEW: Add NotSubscribed screen case
+                NotSubscribed(navigationManager: navigationManager)
             case .selectSession:
                 SelectSessionScreen(navigationManager: navigationManager)
             case .setTimer:
@@ -44,7 +43,9 @@ struct ContentView: View {
             }
         }
         .onChange(of: navigationManager.currentScreen) { newScreen in
-            // print("=== CONTENT VIEW: Screen changed to: \(newScreen.title) ===")
+            #if DEBUG
+            print("📱 ContentView: Screen changed to: \(newScreen.title)")
+            #endif
         }
         .animation(.easeInOut(duration: 0.3), value: navigationManager.currentScreen)
         .onAppear {

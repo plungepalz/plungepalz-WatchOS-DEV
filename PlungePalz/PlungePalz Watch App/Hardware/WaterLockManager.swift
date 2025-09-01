@@ -1,6 +1,6 @@
 //
 //  WaterLockManager.swift
-//  PlungePalz Watch App
+// WatchOS App
 //
 //  Created by AJ Aviles on 6/4/25.
 //

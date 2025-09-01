@@ -11,16 +11,17 @@ import SwiftUI
 enum AppScreen: Int, CaseIterable {
     case home = 1
     case connectDevice = 2
-    case selectSession = 3
-    case setTimer = 4
-    case setTemperature = 5
-    case getReadyCountdownTimer = 6
-    case countdownActivated = 7
-    case activityStoppedOrPaused = 8
-    case sessionDeleted = 9
-    case sessionRecap = 10
-    case pendingSaveSessions = 11
-    case savingOrDeletingPendingActivities = 12
+    case notSubscribed = 3     // NEW: Add NotSubscribed screen
+    case selectSession = 4
+    case setTimer = 5
+    case setTemperature = 6
+    case getReadyCountdownTimer = 7
+    case countdownActivated = 8
+    case activityStoppedOrPaused = 9
+    case sessionDeleted = 10
+    case sessionRecap = 11
+    case pendingSaveSessions = 12
+    case savingOrDeletingPendingActivities = 13
     
     var title: String {
         switch self {
@@ -28,6 +29,8 @@ enum AppScreen: Int, CaseIterable {
             return "Home"
         case .connectDevice:
             return "Connect Device"
+        case .notSubscribed:
+            return "Not Subscribed"
         case .selectSession:
             return "Select Session"
         case .setTimer:

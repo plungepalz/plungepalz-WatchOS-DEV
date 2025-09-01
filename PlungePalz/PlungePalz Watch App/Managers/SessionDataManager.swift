@@ -57,28 +57,65 @@ class SessionDataManager: ObservableObject {
                     // Parse the JSON response
                     if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                         // print("Session data API response: \(json)")
+
+                        // Extract subscription status FIRST
+                        let isUserSubscribed = json["isUserSubscribed"] as? Bool ?? false
+
+                        #if DEBUG
+                        print("👤 User subscription status: \(isUserSubscribed)")
+                        #endif
                         
                         // Extract the session data from the response
-                        // Adjust these field names based on your actual API response structure
                         if let lastSessionTimeSet = json["lastSessionTimeSet"] as? String,
                            let lastSessionWaterTemp = json["lastSessionWaterTemp"] as? String,
                            let unitOfMeasure = json["unitOfMeasure"] as? String {
                             
+                            // Store session data as before
                             self.lastSessionData = [
                                 "lastSessionTimeSet": lastSessionTimeSet,
                                 "lastSessionWaterTemp": lastSessionWaterTemp,
                                 "unitOfMeasure": unitOfMeasure
                             ]
                             
-                            // print("Session data updated successfully")
+                            // NEW: Extract and store the get_ready_timer_seconds value
+                            if let getReadyTimerSeconds = json["get_ready_timer_seconds"] as? Int {
+                                UserDefaults.standard.set(getReadyTimerSeconds, forKey: "get_ready_timer_seconds")
+                                #if DEBUG
+                                print("✅ Get ready timer settings saved from getStartupDataForSmartWatch: \(getReadyTimerSeconds) seconds")
+                                #endif
+                            } else {
+                                // Store default value of 5 seconds if not present in response
+                                UserDefaults.standard.set(5, forKey: "get_ready_timer_seconds")
+                                #if DEBUG
+                                print("⚠️ get_ready_timer_seconds not found in response, using default: 5 seconds")
+                                #endif
+                            }
+
+                            // NEW: Extract and store the isUserSubscribed value
+                            if let isUserSubscribed = json["isUserSubscribed"] as? Bool {
+                                UserDefaults.standard.set(isUserSubscribed, forKey: "isUserSubscribed")
+                                #if DEBUG
+                                print("✅ isUserSubscribed settings saved from getStartupDataForSmartWatch: \(isUserSubscribed) seconds")
+                                #endif
+                            } else {
+                                // Store default value of false if not present in response
+                                UserDefaults.standard.set(false, forKey: "isUserSubscribed")
+                                #if DEBUG
+                                print("⚠️ isUserSubscribed not found in response, using default: false")
+                                #endif
+                            }
+                            
+                            // print("✅ Session data loaded successfully")
                         } else {
-                            // print("Missing required fields in API response")
+                            // print("❌ Missing required fields in API response")
+                            // Store default get ready timer value even if other data is missing
+                            UserDefaults.standard.set(5, forKey: "get_ready_timer_seconds")
                         }
-                    } else {
-                        // print("Failed to parse JSON response")
                     }
                 } catch {
-                    // print("JSON parsing error: \(error)")
+                    // print("❌ Failed to parse JSON: \(error)")
+                    // Store default get ready timer value on JSON parse error
+                    UserDefaults.standard.set(5, forKey: "get_ready_timer_seconds")
                 }
             }
         }.resume()
