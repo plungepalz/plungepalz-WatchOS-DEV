@@ -101,4 +101,33 @@ class HealthKitManager: ObservableObject {
         }
         heartRateUpdateHandler = nil
     }
+
+    func forceStopAllHealthKitQueries() {
+        #if DEBUG
+        print("=== HEALTHKIT MANAGER: Force stopping all queries ===")
+        #endif
+        
+        // Stop heart rate monitoring safely
+        stopHeartRateMonitoring()
+        
+        // SAFE: Only stop if query exists
+        if let query = heartRateQuery {
+            healthStore.stop(query)
+            #if DEBUG
+            print("=== HEALTHKIT MANAGER: Stopped heart rate query ===")
+            #endif
+        } else {
+            #if DEBUG
+            print("=== HEALTHKIT MANAGER: No active heart rate query to stop ===")
+            #endif
+        }
+        
+        // Clear references
+        heartRateQuery = nil
+        heartRateUpdateHandler = nil
+        
+        #if DEBUG
+        print("=== HEALTHKIT MANAGER: All queries forcefully stopped ===")
+        #endif
+    }
 } 

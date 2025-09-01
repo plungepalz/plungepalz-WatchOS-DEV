@@ -334,18 +334,42 @@ class BackgroundTimerManager: ObservableObject {
         
         // Stop get ready timer
         stopGetReadyTimer()
+
+        // Cancel background tasks
+        cancelAllBackgroundTasks()
         
         // Clear all state
         isActiveSession = false
         isGetReadyTimerActive = false
         isInBackground = false
         
+        #if DEBUG
+        print("🔄 Background: ALL TIMERS AND BACKGROUND PROCESSES STOPPED")
+        #endif
+    }
+
+    // Cancel all background tasks
+    func cancelAllBackgroundTasks() {
+        #if DEBUG
+        print("🔄 Background: Canceling all background tasks")
+        #endif
+        
+        // Cancel any pending background refresh
+        WKExtension.shared().scheduleBackgroundRefresh(
+            withPreferredDate: Date().addingTimeInterval(-1), // Past date to cancel
+            userInfo: nil
+        ) { error in
+            #if DEBUG
+            if let error = error {
+                print("🔄 Background: Error canceling background refresh: \(error)")
+            } else {
+                print("🔄 Background: Background refresh canceled")
+            }
+            #endif
+        }
+        
         // Clear background task
         backgroundTask?.setTaskCompletedWithSnapshot(false)
         backgroundTask = nil
-        
-        #if DEBUG
-        print("🔄 Background: ALL TIMERS STOPPED AND CLEARED")
-        #endif
     }
 } 

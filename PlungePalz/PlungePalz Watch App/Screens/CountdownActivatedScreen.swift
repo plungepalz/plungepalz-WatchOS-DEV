@@ -635,19 +635,22 @@ struct CountdownActivatedScreen: View {
     // Add to CountdownActivatedScreen.swift
     private func cleanupAllTimers() {
         #if DEBUG
-        print("=== COUNTDOWN ACTIVATED: Cleaning up all timers ===")
+        print("=== COUNTDOWN ACTIVATED: Cleaning up all timers and background processes ===")
         #endif
         
         // Stop UI timer
         timer?.invalidate()
         timer = nil
         
-        // Stop heart rate timer
+        // CRITICAL: Stop heart rate timer explicitly
         heartRateTimer?.invalidate()
         heartRateTimer = nil
+        #if DEBUG
+        print("=== COUNTDOWN ACTIVATED: Heart rate timer stopped ===")
+        #endif
         
-        // Stop heart rate monitoring
-        healthKitManager.stopHeartRateMonitoring()
+        // FORCE stop ALL HealthKit monitoring
+        healthKitManager.forceStopAllHealthKitQueries()
         
         // End active session tracking
         backgroundTimerManager.endActiveSession()
@@ -656,7 +659,7 @@ struct CountdownActivatedScreen: View {
         waterLockManager.disableWaterLock()
         
         #if DEBUG
-        print("=== COUNTDOWN ACTIVATED: All timers cleaned up ===")
+        print("=== COUNTDOWN ACTIVATED: All timers and background processes cleaned up ===")
         #endif
     }
 }

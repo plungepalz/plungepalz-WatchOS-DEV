@@ -102,27 +102,6 @@ class WorkoutManager: NSObject, ObservableObject {
         startTimer()
     }
     
-    // MARK: - End Workout
-    func endWorkout(completion: @escaping (Bool) -> Void) {
-        guard let session = self.session else {
-            completion(false)
-            return
-        }
-
-        #if DEBUG
-        print("=== WORKOUT MANAGER: endWorkout called ===")
-        print("Current session state: \(session.state)")
-        print("Current isPaused: \(isPaused)")
-        #endif
-
-        // Use the same approach as the working MyWorkouts app
-        session.stopActivity(with: Date())
-        
-        // The actual saving will be handled in the HKWorkoutSessionDelegate
-        // when the session state changes to .stopped
-        completion(true)
-    }
-    
     // MARK: - Stop Workout (simplified approach)
     func stopWorkout() {
         guard let session = self.session else { return }
@@ -285,8 +264,30 @@ class WorkoutManager: NSObject, ObservableObject {
         stopTimer()
         
         // Only try to stop session if it's in a valid state
-        if let session = session, session.state == .running || session.state == .paused {
-            session.stopActivity(with: Date())
+        // if let session = session, session.state == .running || session.state == .paused {
+        //     session.stopActivity(with: Date())
+        // }
+
+        // CRITICAL: Properly end HealthKit session
+        if let session = session {
+            if session.state == .running || session.state == .paused || session.state == .stopped {
+
+                // If the State is stopped, then we need to end the session and save the workout to Activity app
+                if session.state == .stopped {
+                    handleWorkoutEnding();
+                }
+
+                #if DEBUG
+                print("=== WORKOUT MANAGER: Trying to end HealthKit session... ===")
+                #endif
+
+                // End the session entirely
+                session.end()
+
+                #if DEBUG
+                print("=== WORKOUT MANAGER: HealthKit session ended ✅ ===")
+                #endif
+            }
         }
         
         // Clear all state immediately (don't wait for HealthKit)
@@ -295,6 +296,10 @@ class WorkoutManager: NSObject, ObservableObject {
         elapsedTime = 0
         sessionStartDate = nil
         pauseDate = nil
+
+        // CRITICAL: Clear session references to prevent background activity
+        session = nil
+        builder = nil
         
         #if DEBUG
         print("=== WORKOUT MANAGER: SESSION COMPLETELY ENDED ===")

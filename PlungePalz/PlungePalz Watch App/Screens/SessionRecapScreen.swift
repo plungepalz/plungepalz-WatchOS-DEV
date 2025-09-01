@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import Foundation
+import HealthKit
+import Combine
 
 struct SessionRecapScreen: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
@@ -13,6 +16,10 @@ struct SessionRecapScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
     @EnvironmentObject var backgroundTimerManager: BackgroundTimerManager
+
+    // MARK: - HealthKit
+    @StateObject private var healthKitManager = HealthKitManager.shared
+    private let healthStore = HKHealthStore()
     
     // API Status Management
     @StateObject private var apiManager = APIs.shared
@@ -430,6 +437,16 @@ struct SessionRecapScreen: View {
                 makeAPIPostRequest()
             }
 
+            // Disable HealthKit completely
+            HKHealthStore().disableAllBackgroundDelivery { success, error in
+                #if DEBUG
+                if success {
+                    print("✅ HealthKit background delivery disabled")
+                } else {
+                    print("❌ Failed to disable HealthKit: \(error?.localizedDescription ?? "unknown")")
+                }
+                #endif
+            }
             
             // Debug logging for SessionRecapScreen
             print("screenWidth: \(screenWidth)")
