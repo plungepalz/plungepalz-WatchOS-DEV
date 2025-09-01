@@ -197,19 +197,19 @@ struct CountdownActivatedScreen: View {
         #if DEBUG
         print("Session stopped via gesture")
         #endif
-        // End active session tracking
-        backgroundTimerManager.endActiveSession()
+        
+        // IMMEDIATELY clean up all timers
+        cleanupAllTimers()
+        backgroundTimerManager.completelyStopAllTimers()
         
         // Set epic time based on current timer state
         let (_, isCountup) = getCurrentTimerDisplay()
         if isCountup {
-            // Calculate epic time as the time spent in countup mode only
             let elapsedTime = Int(workoutManager.elapsedTime)
             let countdownDuration = sessionDataManager.originalCountdownTimeSeconds
             let epicTime = elapsedTime - countdownDuration
             sessionDataManager.epicTime = max(0, epicTime)
         } else {
-            // If still in countdown mode, epic time is 0
             sessionDataManager.epicTime = 0
         }
         
@@ -217,15 +217,8 @@ struct CountdownActivatedScreen: View {
         if workoutManager.isActive && !workoutManager.isPaused {
             workoutManager.pauseWorkout()
         }
-        // Stop all timers
-        timer?.invalidate()
-        timer = nil
-        heartRateTimer?.invalidate()
-        heartRateTimer = nil
         
-        // Stop heart rate monitoring
-        healthKitManager.stopHeartRateMonitoring()
-        // Navigate to pause screen (same as pause for now)
+        // Navigate to pause screen
         navigationManager.goToScreen(.activityStoppedOrPaused)
     }
 
@@ -508,24 +501,12 @@ struct CountdownActivatedScreen: View {
                 startHeartRateMonitoring()
             }
             .onDisappear {
-                // Pause workout session if active
-                if workoutManager.isActive && !workoutManager.isPaused {
-                    workoutManager.pauseWorkout()
-                }
-                // End active session tracking
-                backgroundTimerManager.endActiveSession()
+                #if DEBUG
+                print("=== COUNTDOWN ACTIVATED: onDisappear triggered ===")
+                #endif
                 
-                // Stop all timers
-                timer?.invalidate()
-                timer = nil
-                heartRateTimer?.invalidate()
-                heartRateTimer = nil
-                
-                // Stop heart rate monitoring
-                healthKitManager.stopHeartRateMonitoring()
-                
-                // Disable Water Lock mode when leaving the screen
-                waterLockManager.disableWaterLock()
+                // Always cleanup when leaving screen
+                cleanupAllTimers()
             }
             .onChange(of: backgroundTimerManager.isInBackground) { isInBackground in
                 if !isInBackground {
@@ -649,6 +630,34 @@ struct CountdownActivatedScreen: View {
                     }
                 }
             }
+    }
+
+    // Add to CountdownActivatedScreen.swift
+    private func cleanupAllTimers() {
+        #if DEBUG
+        print("=== COUNTDOWN ACTIVATED: Cleaning up all timers ===")
+        #endif
+        
+        // Stop UI timer
+        timer?.invalidate()
+        timer = nil
+        
+        // Stop heart rate timer
+        heartRateTimer?.invalidate()
+        heartRateTimer = nil
+        
+        // Stop heart rate monitoring
+        healthKitManager.stopHeartRateMonitoring()
+        
+        // End active session tracking
+        backgroundTimerManager.endActiveSession()
+        
+        // Disable water lock
+        waterLockManager.disableWaterLock()
+        
+        #if DEBUG
+        print("=== COUNTDOWN ACTIVATED: All timers cleaned up ===")
+        #endif
     }
 }
 
