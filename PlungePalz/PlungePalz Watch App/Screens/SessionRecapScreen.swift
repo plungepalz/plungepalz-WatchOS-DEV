@@ -12,6 +12,7 @@ struct SessionRecapScreen: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
+    @EnvironmentObject var backgroundTimerManager: BackgroundTimerManager
     
     // API Status Management
     @StateObject private var apiManager = APIs.shared
@@ -412,6 +413,24 @@ struct SessionRecapScreen: View {
         }
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
+
+            // Stop all timers
+            backgroundTimerManager.completelyStopAllTimers()
+
+            // Completely end workout session (don't use the problematic endWorkout method)
+            workoutManager.completelyEndSession()
+
+            #if DEBUG
+            print("✅ All timers and sessions ended, making API POST request")
+            #endif
+
+            // Make API POST request immediately
+            DispatchQueue.main.async {
+                // Start API POST request
+                makeAPIPostRequest()
+            }
+
+            
             // Debug logging for SessionRecapScreen
             print("screenWidth: \(screenWidth)")
             print("=== SESSION RECAP SCREEN DEBUG ===")
@@ -422,7 +441,7 @@ struct SessionRecapScreen: View {
             print("================================")
             
             // Start API POST request
-            makeAPIPostRequest()
+            // makeAPIPostRequest()
         }
         .onDisappear {
             // Clean up timer when leaving screen
@@ -434,7 +453,7 @@ struct SessionRecapScreen: View {
 
     private func getDeviceIdentifier() -> String {
         let identifier = WKInterfaceDevice.current().identifierForVendor?.uuidString ?? "unknown"
-        print("Device Identifier: \(identifier)")
+        // print("Device Identifier: \(identifier)")
         return identifier
     }
     
@@ -443,8 +462,8 @@ struct SessionRecapScreen: View {
         var pending = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
         pending.append(apiPayload)
         UserDefaults.standard.set(pending, forKey: "pending_requests")
-        print("=== SAVED PENDING REQUEST ===")
-        print(apiPayload)
+        // print("=== SAVED PENDING REQUEST ===")
+        // print(apiPayload)
     }
 
     // Helper: Calculate total time (in seconds)
@@ -485,21 +504,21 @@ struct SessionRecapScreen: View {
     // Will return the device name (e.g. "Apple Watch Ultra 2 (49mm)")
     private func getDeviceName() -> String {
         let model = WKInterfaceDevice.current().name
-        print("Device ID (Model): \(model)")
+        // print("Device ID (Model): \(model)")
         return model
     }
     
     // Will return the device version (e.g. "8.1")
     private func getDeviceModelVersion() -> String {
         let version = WKInterfaceDevice.current().localizedModel
-        print("Device Model Version: \(version)")
+        // print("Device Model Version: \(version)")
         return version
     }
     
     // Will return the device firmware version (e.g. "8.1")
     private func getDeviceFirmwareVersion() -> String {
         let fw_version = WKInterfaceDevice.current().systemVersion
-        print("Device Firmware Version: \(fw_version)")
+        // print("Device Firmware Version: \(fw_version)")
         return "WatchOS \(fw_version)"
     }
 }

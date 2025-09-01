@@ -274,6 +274,32 @@ class WorkoutManager: NSObject, ObservableObject {
             #endif
         }
     }
+
+    // Add to WorkoutManager.swift
+    func completelyEndSession() {
+        #if DEBUG
+        print("=== WORKOUT MANAGER: COMPLETELY ENDING SESSION ===")
+        #endif
+        
+        // Stop timer FIRST (regardless of session state)
+        stopTimer()
+        
+        // Only try to stop session if it's in a valid state
+        if let session = session, session.state == .running || session.state == .paused {
+            session.stopActivity(with: Date())
+        }
+        
+        // Clear all state immediately (don't wait for HealthKit)
+        isActive = false
+        isPaused = false
+        elapsedTime = 0
+        sessionStartDate = nil
+        pauseDate = nil
+        
+        #if DEBUG
+        print("=== WORKOUT MANAGER: SESSION COMPLETELY ENDED ===")
+        #endif
+    }
 }
 
 // MARK: - HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate

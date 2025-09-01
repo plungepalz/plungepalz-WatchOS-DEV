@@ -322,4 +322,30 @@ class BackgroundTimerManager: ObservableObject {
             }
         }
     }
+
+    // In BackgroundTimerManager.swift - Add new method
+    func completelyStopAllTimers() {
+        #if DEBUG
+        print("🔄 Background: COMPLETELY STOPPING ALL TIMERS")
+        #endif
+        
+        // Stop background timer
+        stopBackgroundTimer()
+        
+        // Stop get ready timer
+        stopGetReadyTimer()
+        
+        // Clear all state
+        isActiveSession = false
+        isGetReadyTimerActive = false
+        isInBackground = false
+        
+        // Clear background task
+        backgroundTask?.setTaskCompletedWithSnapshot(false)
+        backgroundTask = nil
+        
+        #if DEBUG
+        print("🔄 Background: ALL TIMERS STOPPED AND CLEARED")
+        #endif
+    }
 } 
