@@ -2,7 +2,7 @@
 //  SessionDataManager.swift
 //  PlungePalz Watch App
 //
-//  Updated to include activityType for multiple activity options
+//  Updated to include activityType and temperature sensor support
 //
 
 import Foundation
@@ -17,8 +17,19 @@ class SessionDataManager: ObservableObject {
     @Published var originalCountdownTimeSeconds: Int = 0
     @Published var currentTimerMode: String = "Countdown" // "Countdown" or "Countup"
     
-    // NEW: Activity Type - Default to "Cold Plunge"
+    // Activity Type - Default to "Cold Plunge"
     @Published var activityType: String = "Cold Plunge" // Options: "Cold Plunge", "Sauna", "Cold Shower"
+    
+    // Temperature Sensor Data (Ultra Watch only, for Sauna/Cold Shower)
+    @Published var SW_Temp_Array_F: [String] = [] // Array of temp readings every 5 seconds (e.g., ["55.1", "55.0"])
+    
+    // Default temperatures from API (always in Fahrenheit)
+    @Published var default_sauna_temp_F: Double = 180.0
+    @Published var default_cold_shower_temp_F: Double = 45.0
+    
+    // Settings from API
+    @Published var useSmartwatchTempSensor: Bool = false
+    @Published var allowSmartwatchGPSlocator: Bool = true
     
     @StateObject private var apiManager = APIs.shared
 
@@ -105,6 +116,58 @@ class SessionDataManager: ObservableObject {
                                 "unitOfMeasure": unitOfMeasure
                             ]
                             
+                            // NEW: Extract and store default Sauna temperature
+                            if let saunaTempF = json["default_sauna_temp_F"] as? Double {
+                                self.default_sauna_temp_F = saunaTempF
+                                #if DEBUG
+                                print("✅ Default Sauna temp: \(saunaTempF)°F")
+                                #endif
+                            } else {
+                                self.default_sauna_temp_F = 180.0 // Default fallback
+                                #if DEBUG
+                                print("⚠️ default_sauna_temp_F not in response, using default: 180.0°F")
+                                #endif
+                            }
+                            
+                            // NEW: Extract and store default Cold Shower temperature
+                            if let coldShowerTempF = json["default_cold_shower_temp_F"] as? Double {
+                                self.default_cold_shower_temp_F = coldShowerTempF
+                                #if DEBUG
+                                print("✅ Default Cold Shower temp: \(coldShowerTempF)°F")
+                                #endif
+                            } else {
+                                self.default_cold_shower_temp_F = 45.0 // Default fallback
+                                #if DEBUG
+                                print("⚠️ default_cold_shower_temp_F not in response, using default: 45.0°F")
+                                #endif
+                            }
+                            
+                            // NEW: Extract and store useSmartwatchTempSensor setting
+                            if let useTempSensor = json["useSmartwatchTempSensor"] as? Bool {
+                                self.useSmartwatchTempSensor = useTempSensor
+                                #if DEBUG
+                                print("✅ Use Smartwatch Temp Sensor: \(useTempSensor)")
+                                #endif
+                            } else {
+                                self.useSmartwatchTempSensor = false
+                                #if DEBUG
+                                print("⚠️ useSmartwatchTempSensor not in response, using default: false")
+                                #endif
+                            }
+                            
+                            // NEW: Extract and store allowSmartwatchGPSlocator setting
+                            if let allowGPS = json["allowSmartwatchGPSlocator"] as? Bool {
+                                self.allowSmartwatchGPSlocator = allowGPS
+                                #if DEBUG
+                                print("✅ Allow Smartwatch GPS: \(allowGPS)")
+                                #endif
+                            } else {
+                                self.allowSmartwatchGPSlocator = true
+                                #if DEBUG
+                                print("⚠️ allowSmartwatchGPSlocator not in response, using default: true")
+                                #endif
+                            }
+                            
                             // Extract and store the get_ready_timer_seconds value
                             if let getReadyTimerSeconds = json["get_ready_timer_seconds"] as? Int {
                                 UserDefaults.standard.set(getReadyTimerSeconds, forKey: "get_ready_timer_seconds")
@@ -160,11 +223,12 @@ class SessionDataManager: ObservableObject {
         #endif
         
         HRArray = []
+        SW_Temp_Array_F = [] // Clear temperature array
         epicTime = nil
         accumulatedSessionTime = 0
         originalCountdownTimeSeconds = 0
         currentTimerMode = "Countdown"
-        // Note: We don't reset activityType here - it persists until user selects a new activity
+        // Note: We don't reset activityType, default temps, or settings - they persist until changed
         
         #if DEBUG
         print("✅ Session tracking reset complete")
@@ -176,5 +240,37 @@ class SessionDataManager: ObservableObject {
         #if DEBUG
         print("❤️ Heart rate added: \(hr), Total samples: \(HRArray.count)")
         #endif
+    }
+    
+    // MARK: - Temperature Statistics
+    func getAverageTemperature() -> String {
+        guard !SW_Temp_Array_F.isEmpty else { return "0.0" }
+        
+        let validTemps = SW_Temp_Array_F.compactMap { Double($0) }
+        guard !validTemps.isEmpty else { return "0.0" }
+        
+        let sum = validTemps.reduce(0.0, +)
+        let average = sum / Double(validTemps.count)
+        return String(format: "%.1f", average)
+    }
+    
+    func getMinTemperature() -> String {
+        guard !SW_Temp_Array_F.isEmpty else { return "0.0" }
+        
+        let validTemps = SW_Temp_Array_F.compactMap { Double($0) }
+        guard !validTemps.isEmpty else { return "0.0" }
+        
+        let minTemp = validTemps.min() ?? 0.0
+        return String(format: "%.1f", minTemp)
+    }
+    
+    func getMaxTemperature() -> String {
+        guard !SW_Temp_Array_F.isEmpty else { return "0.0" }
+        
+        let validTemps = SW_Temp_Array_F.compactMap { Double($0) }
+        guard !validTemps.isEmpty else { return "0.0" }
+        
+        let maxTemp = validTemps.max() ?? 0.0
+        return String(format: "%.1f", maxTemp)
     }
 }

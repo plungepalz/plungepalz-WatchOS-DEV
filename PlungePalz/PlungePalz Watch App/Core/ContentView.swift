@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  PlungePalz Watch App
 //
-//  Updated to support SaunaOrColdShowerMessage screen
+//  Updated to support ActivityStartedScreen for Sauna/Cold Shower
 //
 
 import SwiftUI
@@ -21,7 +21,7 @@ struct ContentView: View {
                 ConnectDeviceScreen(navigationManager: navigationManager)
             case .notSubscribed:
                 NotSubscribed(navigationManager: navigationManager)
-            case .saunaOrColdShowerMessage:  // NEW: Add the activity info screen
+            case .saunaOrColdShowerMessage:  // Activity info screen
                 SaunaOrColdShowerMessage(navigationManager: navigationManager)
             case .selectSession:
                 SelectSessionScreen(navigationManager: navigationManager)
@@ -35,6 +35,8 @@ struct ContentView: View {
                 // Use the original navigation source that was set when the user started the flow
                 let source: CountdownActivatedScreen.NavigationSource = navigationManager.originalNavigationSource
                 CountdownActivatedScreen(navigationManager: navigationManager, navigationSource: source)
+            case .activityStarted:  // NEW: For Sauna/Cold Shower
+                ActivityStartedScreen(navigationManager: navigationManager)
             case .activityStoppedOrPaused:
                 ActivityStoppedOrPausedScreen(navigationManager: navigationManager)
             case .sessionDeleted:

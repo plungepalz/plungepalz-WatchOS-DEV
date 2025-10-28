@@ -2,7 +2,7 @@
 //  NavigationManager.swift
 //  PlungePalz Watch App
 //
-//  Updated to support SaunaOrColdShowerMessage screen
+//  Updated to support ActivityStartedScreen for Sauna/Cold Shower
 //
 
 import SwiftUI
@@ -13,17 +13,18 @@ enum AppScreen: Int, CaseIterable {
     case home = 1
     case connectDevice = 2
     case notSubscribed = 3
-    case saunaOrColdShowerMessage = 4  // NEW: Info screen for Sauna/Cold Shower
+    case saunaOrColdShowerMessage = 4  // Info screen for Sauna/Cold Shower
     case selectSession = 5
     case setTimer = 6
     case setTemperature = 7
     case getReadyCountdownTimer = 8
-    case countdownActivated = 9
-    case activityStoppedOrPaused = 10
-    case sessionDeleted = 11
-    case sessionRecap = 12
-    case pendingSaveSessions = 13
-    case savingOrDeletingPendingActivities = 14
+    case countdownActivated = 9        // For Cold Plunge
+    case activityStarted = 10          // NEW: For Sauna/Cold Shower (countup only)
+    case activityStoppedOrPaused = 11
+    case sessionDeleted = 12
+    case sessionRecap = 13
+    case pendingSaveSessions = 14
+    case savingOrDeletingPendingActivities = 15
     
     var title: String {
         switch self {
@@ -45,6 +46,8 @@ enum AppScreen: Int, CaseIterable {
             return "Get Ready Countdown Timer"
         case .countdownActivated:
             return "Countdown Activated"
+        case .activityStarted:
+            return "Activity Started"
         case .activityStoppedOrPaused:
             return "Activity Stopped/Paused"
         case .sessionDeleted:

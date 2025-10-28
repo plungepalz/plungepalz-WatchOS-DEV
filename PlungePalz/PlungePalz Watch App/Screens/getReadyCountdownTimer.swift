@@ -2,7 +2,7 @@
 //  getReadyCountdownTimer.swift
 //  PlungePalz Watch App
 //
-//  Created by AJ Aviles on 6/12/24.
+//  Updated to route to ActivityStartedScreen for Sauna/Cold Shower
 //
 
 import SwiftUI
@@ -10,6 +10,7 @@ import Combine
 
 struct GetReadyCountdownTimer: View {
     @ObservedObject var navigationManager: NavigationManager
+    @EnvironmentObject var sessionDataManager: SessionDataManager
     
     @StateObject private var screenManager = WatchScreenManager()
     @StateObject private var backgroundTimerManager = BackgroundTimerManager.shared
@@ -92,13 +93,14 @@ struct GetReadyCountdownTimer: View {
             
             #if DEBUG
             print("GetReadyCountdownTimer using stored value: \(finalGetReadySeconds) seconds")
+            print("Current activity type: \(sessionDataManager.activityType)")
             #endif
             
             // Start background timer to ensure countdown continues even if screen sleeps
             backgroundTimerManager.startGetReadyTimer(duration: Double(finalGetReadySeconds)) {
                 // This completion will be called when timer completes (even in background)
                 DispatchQueue.main.async {
-                    self.navigationManager.goToScreen(.countdownActivated)
+                    self.navigateToCorrectScreen()
                 }
             }
             
@@ -113,6 +115,28 @@ struct GetReadyCountdownTimer: View {
         }
     }
     
+    // MARK: - Navigation Logic
+    private func navigateToCorrectScreen() {
+        #if DEBUG
+        print("🎯 GetReadyCountdownTimer: Timer completed, routing based on activity type: \(sessionDataManager.activityType)")
+        #endif
+        
+        // Route based on activity type
+        if sessionDataManager.activityType == "Cold Plunge" {
+            // Cold Plunge goes to CountdownActivatedScreen
+            #if DEBUG
+            print("➡️ Navigating to CountdownActivatedScreen")
+            #endif
+            navigationManager.goToScreen(.countdownActivated)
+        } else {
+            // Sauna or Cold Shower goes to ActivityStartedScreen
+            #if DEBUG
+            print("➡️ Navigating to ActivityStartedScreen")
+            #endif
+            navigationManager.goToScreen(.activityStarted)
+        }
+    }
+    
     private func handleCancelButtonTap() {
         // Set cancel flag to prevent automatic navigation
         isCancelled = true
@@ -123,8 +147,8 @@ struct GetReadyCountdownTimer: View {
         // Stop the UI timer
         stopTimer()
         
-        // Go back to the previous screen (either SetTemperatureScreen or SelectSessionScreen)
-        navigationManager.goToPreviousScreen()
+        // Go back to home (since Sauna/Cold Shower skip SelectSession)
+        navigationManager.goToHome()
     }
     
     private func handleTimerTick() {
@@ -139,8 +163,8 @@ struct GetReadyCountdownTimer: View {
             countdown = 0
             stopTimer()
             
-            // Automatically transition to CountdownActivatedScreen
-            navigationManager.goToScreen(.countdownActivated)
+            // Automatically transition to the correct screen based on activity type
+            navigateToCorrectScreen()
         }
     }
     
@@ -155,4 +179,5 @@ struct GetReadyCountdownTimer: View {
 
 #Preview {
     GetReadyCountdownTimer(navigationManager: NavigationManager())
-} 
+        .environmentObject(SessionDataManager())
+}

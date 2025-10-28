@@ -39,9 +39,9 @@ struct SaunaOrColdShowerMessage: View {
     private var activityMessage: String {
         switch sessionDataManager.activityType {
         case "Cold Shower":
-            return "Default temp: 45°F / 7.2°C. Know your actual coldest shower water temp? Change the default Cold Shower temp in the mobile app settings."
+            return "Default temp: 45°F / 7.2°C. Know your actual coldest shower water temp? Change the default Cold Shower temp in the mobile app settings. 🚨 As of Nov 2025, Apple Watches DO NOT support temperature sensor readings for Cold Shower."
         case "Sauna":
-            return "Default temp: 180°F / 82°C. Prefer a different fixed temp? Update the Sauna temp in the mobile app settings."
+            return "Default temp: 180°F / 82°C. Prefer a different fixed temp? Update the Sauna temp in mobile app settings. 🚨 As of Nov 2025, Apple Watches DO NOT support temperature sensor readings for Sauna."
         default:
             return "Activity information not available."
         }
@@ -66,7 +66,7 @@ struct SaunaOrColdShowerMessage: View {
         // Adaptive sizing
         let iconSize: CGFloat = screenHeight <= 197 ? 35 : (screenHeight <= 224 ? 40 : 45)
         let titleSize: CGFloat = screenHeight <= 197 ? 18 : (screenHeight <= 224 ? 20 : 22)
-        let messageSize: CGFloat = screenHeight <= 197 ? 14 : (screenHeight <= 224 ? 15 : 16)
+        let messageSize: CGFloat = screenHeight <= 197 ? 12 : (screenHeight <= 224 ? 13 : 14)
         let buttonPaddingVertical: CGFloat = screenHeight <= 197 ? 8 : (screenHeight <= 224 ? 10 : 12)
         let buttonPaddingHorizontal: CGFloat = screenHeight <= 197 ? 16 : (screenHeight <= 224 ? 20 : 24)
         
@@ -89,15 +89,15 @@ struct SaunaOrColdShowerMessage: View {
                     .font(.system(size: messageSize, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 12)
                     .lineSpacing(2)
                 
                 // Continue Button
                 Button(action: {
                     #if DEBUG
-                    print("✅ User acknowledged \(sessionDataManager.activityType) info, navigating to SelectSession")
+                    print("✅ User acknowledged \(sessionDataManager.activityType) info, navigating to GetReadyCountdownTimer")
                     #endif
-                    navigationManager.goToScreen(.selectSession)
+                    navigationManager.goToScreen(.getReadyCountdownTimer)
                 }) {
                     HStack {
                         Text("Continue")
