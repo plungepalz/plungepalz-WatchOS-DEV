@@ -7,6 +7,7 @@
 
 import SwiftUI
 import WatchKit
+import Combine
 
 // MARK: - Watch Screen Size Categories
 enum WatchScreenSize: String, CaseIterable {

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 class APIs: ObservableObject {
     static let shared = APIs()

@@ -8,6 +8,7 @@
 import WatchKit
 import Foundation
 import SwiftUI
+import Combine
 
 class WaterLockManager: ObservableObject {
     

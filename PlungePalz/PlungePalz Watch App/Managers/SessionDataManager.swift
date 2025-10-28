@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 class SessionDataManager: ObservableObject {
     @Published var lastSessionData: [String: String]? = nil
