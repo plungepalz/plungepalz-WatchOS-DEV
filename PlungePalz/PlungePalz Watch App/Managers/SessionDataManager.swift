@@ -1,3 +1,10 @@
+//
+//  SessionDataManager.swift
+//  PlungePalz Watch App
+//
+//  Updated to include activityType for multiple activity options
+//
+
 import Foundation
 import SwiftUI
 import Combine
@@ -9,12 +16,18 @@ class SessionDataManager: ObservableObject {
     @Published var accumulatedSessionTime: Int = 0
     @Published var originalCountdownTimeSeconds: Int = 0
     @Published var currentTimerMode: String = "Countdown" // "Countdown" or "Countup"
+    
+    // NEW: Activity Type - Default to "Cold Plunge"
+    @Published var activityType: String = "Cold Plunge" // Options: "Cold Plunge", "Sauna", "Cold Shower"
+    
     @StateObject private var apiManager = APIs.shared
 
     func fetchLastSessionData() {
         // Get the stored userId from UserDefaults
         guard let userId = UserDefaults.standard.string(forKey: "userId") else {
-            // print("No userId found in storage, cannot fetch session data")
+            #if DEBUG
+            print("No userId found in storage, cannot fetch session data")
+            #endif
             return
         }
         
@@ -23,11 +36,15 @@ class SessionDataManager: ObservableObject {
         let urlString = "\(baseURL)?userId=\(userId)"
         
         guard let url = URL(string: urlString) else {
-            // print("Invalid URL: \(urlString)")
+            #if DEBUG
+            print("Invalid URL: \(urlString)")
+            #endif
             return
         }
         
-        // print("Fetching session data from: \(urlString)")
+        #if DEBUG
+        print("Fetching session data from: \(urlString)")
+        #endif
         
         // Create the URL request
         var request = URLRequest(url: url)
@@ -38,26 +55,36 @@ class SessionDataManager: ObservableObject {
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    // print("API request failed with error: \(error)")
+                    #if DEBUG
+                    print("API request failed with error: \(error)")
+                    #endif
                     return
                 }
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    // print("Invalid response type")
+                    #if DEBUG
+                    print("Invalid response type")
+                    #endif
                     return
                 }
                 
-                // print("API response status code: \(httpResponse.statusCode)")
+                #if DEBUG
+                print("API response status code: \(httpResponse.statusCode)")
+                #endif
                 
                 guard let data = data else {
-                    // print("No data received from API")
+                    #if DEBUG
+                    print("No data received from API")
+                    #endif
                     return
                 }
                 
                 do {
                     // Parse the JSON response
                     if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        // print("Session data API response: \(json)")
+                        #if DEBUG
+                        print("Session data API response: \(json)")
+                        #endif
 
                         // Extract subscription status FIRST
                         let isUserSubscribed = json["isUserSubscribed"] as? Bool ?? false
@@ -78,7 +105,7 @@ class SessionDataManager: ObservableObject {
                                 "unitOfMeasure": unitOfMeasure
                             ]
                             
-                            // NEW: Extract and store the get_ready_timer_seconds value
+                            // Extract and store the get_ready_timer_seconds value
                             if let getReadyTimerSeconds = json["get_ready_timer_seconds"] as? Int {
                                 UserDefaults.standard.set(getReadyTimerSeconds, forKey: "get_ready_timer_seconds")
                                 #if DEBUG
@@ -92,11 +119,11 @@ class SessionDataManager: ObservableObject {
                                 #endif
                             }
 
-                            // NEW: Extract and store the isUserSubscribed value
+                            // Extract and store the isUserSubscribed value
                             if let isUserSubscribed = json["isUserSubscribed"] as? Bool {
                                 UserDefaults.standard.set(isUserSubscribed, forKey: "isUserSubscribed")
                                 #if DEBUG
-                                print("✅ isUserSubscribed settings saved from getStartupDataForSmartWatch: \(isUserSubscribed) seconds")
+                                print("✅ isUserSubscribed saved from getStartupDataForSmartWatch: \(isUserSubscribed)")
                                 #endif
                             } else {
                                 // Store default value of false if not present in response
@@ -106,27 +133,48 @@ class SessionDataManager: ObservableObject {
                                 #endif
                             }
                             
-                            // print("✅ Session data loaded successfully")
+                            #if DEBUG
+                            print("✅ Session data fetched and stored successfully")
+                            print("lastSessionTimeSet: \(lastSessionTimeSet)")
+                            print("lastSessionWaterTemp: \(lastSessionWaterTemp)")
+                            print("unitOfMeasure: \(unitOfMeasure)")
+                            #endif
                         } else {
-                            // print("❌ Missing required fields in API response")
-                            // Store default get ready timer value even if other data is missing
-                            UserDefaults.standard.set(5, forKey: "get_ready_timer_seconds")
+                            #if DEBUG
+                            print("❌ Failed to extract session data from API response")
+                            #endif
                         }
                     }
                 } catch {
-                    // print("❌ Failed to parse JSON: \(error)")
-                    // Store default get ready timer value on JSON parse error
-                    UserDefaults.standard.set(5, forKey: "get_ready_timer_seconds")
+                    #if DEBUG
+                    print("❌ Failed to parse JSON response: \(error)")
+                    #endif
                 }
             }
         }.resume()
     }
 
     func resetSessionTracking() {
+        #if DEBUG
+        print("🔄 SessionDataManager: Resetting session tracking")
+        #endif
+        
         HRArray = []
         epicTime = nil
         accumulatedSessionTime = 0
         originalCountdownTimeSeconds = 0
         currentTimerMode = "Countdown"
+        // Note: We don't reset activityType here - it persists until user selects a new activity
+        
+        #if DEBUG
+        print("✅ Session tracking reset complete")
+        #endif
     }
-} 
+    
+    func addHeartRate(_ hr: Int) {
+        HRArray.append(hr)
+        #if DEBUG
+        print("❤️ Heart rate added: \(hr), Total samples: \(HRArray.count)")
+        #endif
+    }
+}

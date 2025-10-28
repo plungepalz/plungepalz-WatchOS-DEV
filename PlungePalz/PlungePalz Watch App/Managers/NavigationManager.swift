@@ -2,7 +2,7 @@
 //  NavigationManager.swift
 //  PlungePalz Watch App
 //
-//  Created by AJ Aviles on 6/4/25.
+//  Updated to support SaunaOrColdShowerMessage screen
 //
 
 import SwiftUI
@@ -12,17 +12,18 @@ import Combine
 enum AppScreen: Int, CaseIterable {
     case home = 1
     case connectDevice = 2
-    case notSubscribed = 3     // NEW: Add NotSubscribed screen
-    case selectSession = 4
-    case setTimer = 5
-    case setTemperature = 6
-    case getReadyCountdownTimer = 7
-    case countdownActivated = 8
-    case activityStoppedOrPaused = 9
-    case sessionDeleted = 10
-    case sessionRecap = 11
-    case pendingSaveSessions = 12
-    case savingOrDeletingPendingActivities = 13
+    case notSubscribed = 3
+    case saunaOrColdShowerMessage = 4  // NEW: Info screen for Sauna/Cold Shower
+    case selectSession = 5
+    case setTimer = 6
+    case setTemperature = 7
+    case getReadyCountdownTimer = 8
+    case countdownActivated = 9
+    case activityStoppedOrPaused = 10
+    case sessionDeleted = 11
+    case sessionRecap = 12
+    case pendingSaveSessions = 13
+    case savingOrDeletingPendingActivities = 14
     
     var title: String {
         switch self {
@@ -32,6 +33,8 @@ enum AppScreen: Int, CaseIterable {
             return "Connect Device"
         case .notSubscribed:
             return "Not Subscribed"
+        case .saunaOrColdShowerMessage:
+            return "Activity Info"
         case .selectSession:
             return "Select Session"
         case .setTimer:
@@ -107,15 +110,20 @@ class NavigationManager: ObservableObject {
     }
     
     func goToScreen(_ screen: AppScreen) {
-        // print("=== NAVIGATION MANAGER: goToScreen called ===")
-        // print("From screen: \(currentScreen.title) (\(currentScreen.rawValue))")
-        // print("To screen: \(screen.title) (\(screen.rawValue))")
+        #if DEBUG
+        print("=== NAVIGATION MANAGER: goToScreen called ===")
+        print("From screen: \(currentScreen.title) (\(currentScreen.rawValue))")
+        print("To screen: \(screen.title) (\(screen.rawValue))")
+        #endif
+        
         previousScreen = currentScreen
         currentScreen = screen
         
         // Add to navigation stack
         navigationStack.append(screen)
         
-        // print("=== NAVIGATION MANAGER: Screen change completed ===")
+        #if DEBUG
+        print("=== NAVIGATION MANAGER: Screen change completed ===")
+        #endif
     }
-} 
+}

@@ -2,7 +2,7 @@
 //  HomeScreen.swift
 //  PlungePalz Watch App
 //
-//  Created by AJ Aviles on 6/4/25.
+//  Updated to support multiple activity types
 //
 
 import SwiftUI
@@ -15,6 +15,16 @@ struct HomeScreen: View {
     
     // MARK: - HealthKit
     @StateObject private var healthKitManager = HealthKitManager.shared
+    
+    // MARK: - Activity Selection State
+    @State private var selectedActivityIndex: Int = 0
+    
+    // Activity options
+    let activities = [
+        ActivityOption(name: "Plunge", icon: "snowflake", type: "Cold Plunge"),
+        ActivityOption(name: "Sauna", icon: "heater.vertical", type: "Sauna"),
+        ActivityOption(name: "Cold Shower", icon: "shower", type: "Cold Shower")
+    ]
     
     // Placeholder for connection status
     enum ConnectionStatus {
@@ -84,99 +94,58 @@ struct HomeScreen: View {
             }
         }
     }
-    
-    // TODO: Replace with real connection status logic
+
     @State private var connectionStatus: ConnectionStatus = .connecting
-    @State private var wifiSignalStrength = 1
-    
-    // NEW: API behavior
+    @State private var isAPIBusy: Bool = false
+    @StateObject private var apiManager = APIs.shared
+
+    // MARK: - Connection Functions
     private func performConnection() {
-        // Start with connecting state
         connectionStatus = .connecting
         
-        // Start WiFi animation
-        startWifiAnimation()
-        
-        // Call the SessionDataManager to fetch data
         sessionDataManager.fetchLastSessionData()
-    }
-    
-    private func startWifiAnimation() {
-        // Create a timer that fires every 0.3 seconds
-        Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { timer in
-            if connectionStatus == .connecting {
-                // Cycle through WiFi signal strengths (1-3)
-                wifiSignalStrength = wifiSignalStrength % 3 + 1
-            } else {
-                // Stop the timer when we're no longer connecting
-                timer.invalidate()
-            }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            updateConnectionStatusBasedOnSubscription()
         }
-    }
-    
-    private func getWifiIconName() -> String {
-        if connectionStatus == .connecting {
-            return "wifi.\(wifiSignalStrength)"
-        }
-        return connectionStatus.iconName
     }
 
-    // MARK: - Check Subscription Status
     private func updateConnectionStatusBasedOnSubscription() {
-        // Always check subscription status when this function is called
         let isUserSubscribed = UserDefaults.standard.bool(forKey: "isUserSubscribed")
         
         #if DEBUG
-        print("📊 HomeScreen: Checking subscription status, isUserSubscribed = \(isUserSubscribed)")
+        print("👤 HomeScreen: updateConnectionStatusBasedOnSubscription called")
+        print("👤 isUserSubscribed: \(isUserSubscribed)")
         #endif
         
-        // Check if we have valid session data (indicates successful API call)
-        if sessionDataManager.lastSessionData != nil {
-            // API call was successful, set status based on subscription
-            if isUserSubscribed {
-                connectionStatus = .subscribed
-            } else {
-                connectionStatus = .notSubscribed
-            }
+        if isUserSubscribed {
+            connectionStatus = .subscribed
         } else {
-            // API call failed or no data - could be network issue  
-            connectionStatus = .noWiFi
+            connectionStatus = .notSubscribed
         }
     }
 
-    
     var body: some View {
         let screenSize = screenManager.currentScreenSize
+        let screenWidth = WKInterfaceDevice.current().screenBounds.width
         let screenHeight = WKInterfaceDevice.current().screenBounds.height
-        // ====== Define all adaptive UI constants for HomeScreen ======//
-        
 
-        // Container Height Ratios
+        // ====== Define all adaptive UI constants for HomeScreen ======
         let topContainerHeightRatio = WatchGlobalUIConfig.HomeScreen.topContainerHeightRatio(for: screenSize)
         let middleBlueContainerHeightRatio = WatchGlobalUIConfig.HomeScreen.middleBlueContainerHeightRatio(for: screenSize)
         let bottomContainerHeightRatio = WatchGlobalUIConfig.HomeScreen.bottomContainerHeightRatio(for: screenSize)
-
-        // Top Container Assets
         let connectionStatusIconSize = WatchGlobalUIConfig.HomeScreen.connectionStatusIconSize(for: screenSize)
-        
-        // Middle Container Assets
         let chevronPadding = WatchGlobalUIConfig.HomeScreen.chevronPadding(for: screenSize)
         let plungeButtonCornerRadius = WatchGlobalUIConfig.HomeScreen.plungeButtonCornerRadius(for: screenSize)
         let plungeButtonHorizontalPadding = WatchGlobalUIConfig.HomeScreen.plungeButtonHorizontalPadding(for: screenSize)
         let plungeButtonVerticalPadding = WatchGlobalUIConfig.HomeScreen.plungeButtonVerticalPadding(for: screenSize)
         let bottomLogoSpacing = WatchGlobalUIConfig.HomeScreen.bottomLogoSpacing(for: screenSize)
         let middleContainerPaddingTrailing = WatchGlobalUIConfig.HomeScreen.middleContainerPaddingTrailing(for: screenSize)
-
-        // Bottom Container Assets
         let bottomContainerLogoSize = WatchGlobalUIConfig.HomeScreen.bottomContainerLogoSize(for: screenSize)
         let bottomContainerLogoSpacing = WatchGlobalUIConfig.HomeScreen.bottomContainerLogoSpacing(for: screenSize)
         let bottomContainerAssetPadding = WatchGlobalUIConfig.HomeScreen.bottomContainerAssetPadding(for: screenSize)
-
         // ====== End of adaptive UI constants for HomeScreen ======
-        
-        
-        
-        // Add more as you add to WatchGlobalUIConfig.HomeScreen
+
         VStack(spacing: 0) {
             // Top Black Container
             ZStack {
@@ -234,83 +203,88 @@ struct HomeScreen: View {
             .frame(maxWidth: .infinity)
             .frame(height: screenHeight * topContainerHeightRatio)
             
-            // Middle Blue Container (adaptive height and padding)
+            // Middle Blue Container - Activity Selection or Navigation
             ZStack {
                 Color(red: 0/255, green: 116/255, blue: 255/255)
-                HStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: connectionStatusIconSize, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.trailing, chevronPadding)
-                    HStack(spacing: chevronPadding) {
-                        // Subscribed or No WiFi
-                        if connectionStatus == .subscribed || connectionStatus == .noWiFi {
-                            Image(systemName: "snowflake")
-                                .font(.system(size: connectionStatusIconSize, weight: .bold))
-                                .foregroundStyle(.white)
-                            Text("Plunge")
-                                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
+                
+                if connectionStatus == .subscribed || connectionStatus == .noWiFi {
+                    // Show scrollable activity list
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 8) {
+                            ForEach(0..<activities.count, id: \.self) { index in
+                                ActivitySelectionRow(
+                                    activity: activities[index],
+                                    isSelected: selectedActivityIndex == index,
+                                    connectionStatusIconSize: connectionStatusIconSize
+                                )
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        selectedActivityIndex = index
+                                        // Set the activity type in SessionDataManager
+                                        sessionDataManager.activityType = activities[index].type
+                                        
+                                        #if DEBUG
+                                        print("🎯 Activity selected: \(activities[index].name) (\(activities[index].type))")
+                                        #endif
+                                        
+                                        // Navigate based on activity type
+                                        if activities[index].type == "Cold Plunge" {
+                                            navigationManager.goToScreen(.selectSession)
+                                        } else {
+                                            // For Sauna or Cold Shower, show info message first
+                                            navigationManager.goToScreen(.saunaOrColdShowerMessage)
+                                        }
+                                    }
+                                }
+                            }
                         }
-                        // Not Paired
-                        else if connectionStatus == .notPaired {
-                            Image(systemName: "app.connected.to.app.below.fill")
-                                .font(.system(size: connectionStatusIconSize, weight: .bold))
-                                .foregroundStyle(.white)
-                            Text("Pair")
-                                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                        }
-                        // Not Subscribed - show different button
-                        else if connectionStatus == .notSubscribed {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: connectionStatusIconSize, weight: .bold))
-                                .foregroundStyle(.white)
-                            Text("Subscribe")
-                                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                        }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, plungeButtonVerticalPadding)
-                    .padding(.horizontal, plungeButtonHorizontalPadding)
-                    .background(Color.black)
-                    .clipShape(RoundedRectangle(cornerRadius: plungeButtonCornerRadius))
-                    .padding(.trailing, middleContainerPaddingTrailing)
+                    .frame(maxWidth: .infinity)
+                } else {
+                    // Not Paired or Not Subscribed - show navigation button
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: connectionStatusIconSize, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.trailing, chevronPadding)
+                        HStack(spacing: chevronPadding) {
+                            if connectionStatus == .notPaired {
+                                Image(systemName: "app.connected.to.app.below.fill")
+                                    .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                    .foregroundStyle(.white)
+                                Text("Pair")
+                                    .watchAdaptivePoppinsFont(style: .title, weight: .regular)
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                            } else if connectionStatus == .notSubscribed {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: connectionStatusIconSize, weight: .bold))
+                                    .foregroundStyle(.white)
+                                Text("Subscribe")
+                                    .watchAdaptivePoppinsFont(style: .title, weight: .regular)
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                            }
+                        }
+                        .padding(.horizontal, plungeButtonHorizontalPadding)
+                        .padding(.vertical, plungeButtonVerticalPadding)
+                        .background(Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: plungeButtonCornerRadius))
+                        .padding(.trailing, middleContainerPaddingTrailing)
+                        .opacity(connectionStatus == .connecting ? 0.5 : 1.0)
+                        Spacer(minLength: 0)
+                    }
                     .onTapGesture {
-                        switch connectionStatus {
-                        case .connecting:
-                            // Do nothing while connecting
-                            #if DEBUG
-                            print("⏳ Still connecting, please wait...")
-                            #endif
-                            break
-                        case .subscribed, .noWiFi:
-                            #if DEBUG
-                            print("✅ Navigating to select session")
-                            #endif
-                            navigationManager.goToScreen(.selectSession)
-                        case .notPaired:
-                            #if DEBUG
-                            print("📱 Navigating to connect device")
-                            #endif
+                        if connectionStatus == .notPaired {
                             navigationManager.goToScreen(.connectDevice)
-                        case .notSubscribed:
-                            #if DEBUG
-                            navigationManager.goToScreen(.notSubscribed)  // Navigate to NotSubscribed screen
-                            #endif
-                            // TODO: Navigate to subscription screen when implemented
-                            break
+                        } else if connectionStatus == .notSubscribed {
+                            navigationManager.goToScreen(.notSubscribed)
                         }
                     }
-                    .opacity(connectionStatus == .connecting ? 0.5 : 1.0)
-                    Spacer(minLength: 0)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 0))
@@ -367,39 +341,68 @@ struct HomeScreen: View {
             sessionDataManager.resetSessionTracking()
             requestHealthKitPermissions()
         }
-        .onChange(of: sessionDataManager.lastSessionData) { _ in
-            // When session data changes, update connection status based on subscription
-            #if DEBUG
-            print("📊 HomeScreen: Session data changed, updating connection status")
-            #endif
-            updateConnectionStatusBasedOnSubscription()
-        }
     }
     
-    // MARK: - HealthKit Permission Request
-    private func requestHealthKitPermissions() {
-        healthKitManager.requestHeartRatePermission { granted in
-            DispatchQueue.main.async {
-                if granted {
-                    // print("✅ HealthKit heart rate permission granted")
-                } else {
-                    // print("❌ HealthKit heart rate permission denied")
-                }
+    // MARK: - HealthKit Authorization
+    func requestHealthKitPermissions() {
+        healthKitManager.requestHeartRatePermission { success in
+            if success {
+                #if DEBUG
+                print("✅ HealthKit heart rate permission granted")
+                #endif
+            } else {
+                #if DEBUG
+                print("❌ HealthKit heart rate permission denied")
+                #endif
             }
         }
     }
 }
 
+// MARK: - Activity Option Model
+struct ActivityOption {
+    let name: String
+    let icon: String
+    let type: String
+}
+
+// MARK: - Activity Selection Row
+struct ActivitySelectionRow: View {
+    let activity: ActivityOption
+    let isSelected: Bool
+    let connectionStatusIconSize: CGFloat
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: activity.icon)
+                .font(.system(size: connectionStatusIconSize * 0.9, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: connectionStatusIconSize)
+            
+            Text(activity.name)
+                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            
+            Spacer()
+            
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isSelected ? Color.black.opacity(0.3) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isSelected ? Color.white.opacity(0.5) : Color.white.opacity(0.2), lineWidth: 2)
+        )
+        .padding(.horizontal, 8)
+    }
+}
+
 #Preview {
-    let previewManager: SessionDataManager = {
-        let manager = SessionDataManager()
-        manager.lastSessionData = [
-            "lastSessionTimeSet": "3:15",
-            "lastSessionWaterTemp": "45.5",
-            "unitOfMeasure": "Imperial"
-        ]
-        return manager
-    }()
-    return HomeScreen(navigationManager: NavigationManager())
-        .environmentObject(previewManager)
-} 
+    HomeScreen(navigationManager: NavigationManager())
+        .environmentObject(SessionDataManager())
+}

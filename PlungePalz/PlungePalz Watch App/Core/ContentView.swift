@@ -1,5 +1,8 @@
 //
-//  Updated ContentView.swift - Add NotSubscribed Screen Case
+//  ContentView.swift
+//  PlungePalz Watch App
+//
+//  Updated to support SaunaOrColdShowerMessage screen
 //
 
 import SwiftUI
@@ -16,8 +19,10 @@ struct ContentView: View {
                 HomeScreen(navigationManager: navigationManager)
             case .connectDevice:
                 ConnectDeviceScreen(navigationManager: navigationManager)
-            case .notSubscribed:                    // NEW: Add NotSubscribed screen case
+            case .notSubscribed:
                 NotSubscribed(navigationManager: navigationManager)
+            case .saunaOrColdShowerMessage:  // NEW: Add the activity info screen
+                SaunaOrColdShowerMessage(navigationManager: navigationManager)
             case .selectSession:
                 SelectSessionScreen(navigationManager: navigationManager)
             case .setTimer:
