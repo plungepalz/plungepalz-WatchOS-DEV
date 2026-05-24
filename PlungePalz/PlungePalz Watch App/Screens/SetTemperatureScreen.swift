@@ -12,49 +12,51 @@ struct SetTemperatureScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
 
-
     @State private var selectedUnitIndex: Int = 0 // 0 = °F, 1 = °C
     @State private var selectedWhole: Int = 45
-    @State private var selectedDecimal: Int = 1
-    
+    @State private var selectedDecimal: Int = 0
+
     private let units = ["°F", "°C"]
-    private let fahrenheitRange = Array(32...65)
-    private let celsiusRange = Array(0...18)
     private let decimals = Array(0...9)
 
+    private var tempConfig: TemperatureRangeConfig {
+        TemperatureRanges.config(for: sessionDataManager.activityType)
+    }
+
     private func getWholeRange() -> [Int] {
-        return selectedUnitIndex == 0 ? fahrenheitRange : celsiusRange
+        selectedUnitIndex == 0
+            ? TemperatureRanges.fahrenheitRange(for: sessionDataManager.activityType)
+            : TemperatureRanges.celsiusRange(for: sessionDataManager.activityType)
     }
+
     private func getUnitOfMeasure() -> String {
-        return selectedUnitIndex == 0 ? "Imperial" : "Metric"
+        selectedUnitIndex == 0 ? "Imperial" : "Metric"
     }
+
     private func getTempString() -> String {
-        return String(format: "%d.%d", selectedWhole, selectedDecimal)
+        String(format: "%d.%d", selectedWhole, selectedDecimal)
     }
+
     private func getInitialUnitIndex() -> Int {
-        guard let unit = sessionDataManager.lastSessionData?["unitOfMeasure"] else { return 0 }
-        if unit == "Metric" { return 1 }
-        return 0
+        sessionDataManager.unitOfMeasure == "Metric" ? 1 : 0
     }
-    private func getInitialWhole() -> Int {
-        guard let tempStr = sessionDataManager.lastSessionData?["lastSessionWaterTemp"], let temp = Double(tempStr) else {
-            // Use preferred defaults if no last session value
-            return selectedUnitIndex == 0 ? 45 : 7
-        }
+
+    private func applyDefaultsForCurrentUnit() {
+        let config = tempConfig
         if selectedUnitIndex == 0 {
-            return Int(temp.rounded(.down))
+            selectedWhole = config.fahrenheitDefault
         } else {
-            // Convert F to C
-            let c = (temp - 32) * 5 / 9
-            return Int(c.rounded(.down))
+            selectedWhole = config.celsiusDefault
         }
+        selectedDecimal = 0
     }
-    private func getInitialDecimal() -> Int {
-        guard let tempStr = sessionDataManager.lastSessionData?["lastSessionWaterTemp"], let temp = Double(tempStr) else {
-            return 0 // Always .0 if no last session value
+
+    private func getInitialWhole() -> Int {
+        let config = tempConfig
+        if selectedUnitIndex == 0 {
+            return config.fahrenheitDefault
         }
-        let decimal = Int((temp * 10).truncatingRemainder(dividingBy: 10))
-        return decimal
+        return config.celsiusDefault
     }
 
     var body: some View {
@@ -70,35 +72,26 @@ struct SetTemperatureScreen: View {
         let buttonInternalTopPadding = WatchGlobalUIConfig.SetTemperatureScreen.buttonInternalTopPadding(for: screenSize)
 
         VStack(spacing: 0) {
-            // Header
             HStack(spacing: 6) {
-                Image(systemName: "thermometer.snowflake")
+                Image(systemName: "thermometer")
                     .font(.system(size: headerIconSize, weight: .bold))
                     .foregroundStyle(.white)
                 Text("Set Temp")
                     .font(.system(size: headerTitleFontSize, weight: .bold))
                     .foregroundStyle(.white)
             }
+            .padding(.top, 20)
             .padding(.bottom, 8)
 
-            // Pickers
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.white.opacity(0.3))
                     .frame(height: 28)
                 HStack(alignment: .center, spacing: valuesContainerGap) {
-                    // Unit Picker
-                    Picker(selection: $selectedUnitIndex.onChange { newIndex in
-                        // When unit changes, set to preferred defaults
-                        if newIndex == 0 {
-                            selectedWhole = 45
-                            selectedDecimal = 0
-                        } else {
-                            selectedWhole = 7
-                            selectedDecimal = 0
-                        }
+                    Picker(selection: $selectedUnitIndex.onChange { _ in
+                        applyDefaultsForCurrentUnit()
                     }, label: EmptyView()) {
-                        ForEach(0..<units.count, id: \ .self) { idx in
+                        ForEach(0..<units.count, id: \.self) { idx in
                             Text(units[idx])
                                 .font(.system(size: valuesFontSize, weight: .bold))
                                 .foregroundColor(.white)
@@ -109,14 +102,9 @@ struct SetTemperatureScreen: View {
                     .clipped()
                     .compositingGroup()
                     .pickerStyle(.wheel)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.blue, lineWidth: 0)
-                    )
 
-                    // Whole Number Picker
                     Picker(selection: $selectedWhole, label: EmptyView()) {
-                        ForEach(getWholeRange(), id: \ .self) { value in
+                        ForEach(getWholeRange(), id: \.self) { value in
                             Text("\(value)")
                                 .font(.system(size: valuesFontSize, weight: .bold))
                                 .foregroundColor(.white)
@@ -127,14 +115,9 @@ struct SetTemperatureScreen: View {
                     .clipped()
                     .compositingGroup()
                     .pickerStyle(.wheel)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.blue, lineWidth: 0)
-                    )
 
-                    // Decimal Picker
                     Picker(selection: $selectedDecimal, label: EmptyView()) {
-                        ForEach(decimals, id: \ .self) { value in
+                        ForEach(decimals, id: \.self) { value in
                             Text(".\(value)")
                                 .font(.system(size: valuesFontSize, weight: .bold))
                                 .foregroundColor(.white)
@@ -144,32 +127,20 @@ struct SetTemperatureScreen: View {
                     .clipped()
                     .compositingGroup()
                     .pickerStyle(.wheel)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.blue, lineWidth: 0)
-                    )
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
             }
 
-            // START button
             Button(action: {
-                // Save temp and unit as string
-                var tempString = getTempString()
-                let unitString = getUnitOfMeasure()
-                if sessionDataManager.lastSessionData == nil {
-                    sessionDataManager.lastSessionData = [:]
+                var tempF: Double
+                if selectedUnitIndex == 1 {
+                    let celsius = Double(getTempString()) ?? 0
+                    tempF = (celsius * 9 / 5) + 32
+                } else {
+                    tempF = Double(getTempString()) ?? 0
                 }
 
-                // If the unit is Metric, convert the temp from Fahrenheit to Celsius for display purposes
-                if unitString == "Metric" {
-                    let celsius = Double(tempString) ?? 0
-                    let fahrenheit = (celsius * 9 / 5) + 32
-                    tempString = String(format: "%.1f", fahrenheit)
-                }
-
-                sessionDataManager.lastSessionData?["lastSessionWaterTemp"] = tempString
-                sessionDataManager.lastSessionData?["unitOfMeasure"] = unitString
+                sessionDataManager.sessionTempF = tempF
                 navigationManager.originalNavigationSource = .setTemperature
                 navigationManager.goToScreen(.getReadyCountdownTimer)
             }) {
@@ -182,7 +153,6 @@ struct SetTemperatureScreen: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     Spacer(minLength: 0)
-                    .cornerRadius(50)
                 }
                 .padding(.vertical, buttonInternalTopPadding)
                 .background(Color.blue.opacity(0.7))
@@ -193,13 +163,12 @@ struct SetTemperatureScreen: View {
             .padding(.top, buttonTopPadding)
         }
         .background(Color.black.ignoresSafeArea())
+        .watchBackNavigation(navigationManager: navigationManager, iconSize: headerIconSize)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
-            // Set initial values from API if available
-            let initialUnit = getInitialUnitIndex()
-            selectedUnitIndex = initialUnit
+            selectedUnitIndex = getInitialUnitIndex()
             selectedWhole = getInitialWhole()
-            selectedDecimal = getInitialDecimal()
+            selectedDecimal = 0
         }
     }
 }
@@ -207,4 +176,4 @@ struct SetTemperatureScreen: View {
 #Preview {
     SetTemperatureScreen(navigationManager: NavigationManager())
         .environmentObject(SessionDataManager())
-} 
+}

@@ -75,42 +75,14 @@ struct CountdownActivatedScreen: View {
 
     // MARK: - Timer/Temperature Sourcing
     private func getInitialTimerValue() -> Int {
-        switch navigationSource {
-        case .selectSession:
-            // Use last session time from API
-            if let last = sessionDataManager.lastSessionData,
-               let timeStr = last["lastSessionTimeSet"],
-               let seconds = parseTimeStringToSeconds(timeStr) {
-                return seconds
-            }
-            return 500 // Default fallback
-        case .setTemperature:
-            // Use time set in SetTimerScreen
-            if let last = sessionDataManager.lastSessionData,
-               let timeStr = last["lastSessionTimeSet"],
-               let seconds = parseTimeStringToSeconds(timeStr) {
-                return seconds
-            }
-            return 500 // Default fallback
-        }
+        let seconds = sessionDataManager.sessionTimeSeconds
+        return seconds > 0 ? seconds : 500
     }
 
     private func getTemperatureString() -> String {
-        if let last = sessionDataManager.lastSessionData,
-           let tempStr = last["lastSessionWaterTemp"],
-           let temp = Double(tempStr),
-           let unit = last["unitOfMeasure"] {
-            
-            // If unit is Metric, convert from stored Fahrenheit to Celsius
-            if unit == "Metric" {
-                let celsius = (temp - 32) * 5 / 9
-                return String(format: "%.1f °C", celsius)
-            }
-            
-            // Otherwise display as Fahrenheit
-            return String(format: "%.1f °F", temp)
-        }
-        return "45.4 °F" // Default fallback
+        let tempF = sessionDataManager.sessionTempF
+        guard tempF > 0 else { return "--" }
+        return sessionDataManager.formatTempDisplayWithUnit(tempF: tempF)
     }
 
     private func parseTimeStringToSeconds(_ str: String) -> Int? {

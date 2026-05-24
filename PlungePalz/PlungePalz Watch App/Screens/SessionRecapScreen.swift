@@ -34,6 +34,9 @@ struct SessionRecapScreen: View {
     @State private var retryProgress: CGFloat = 1.0
     @State private var retryProgressTimer: Timer?
     
+    // Store the current session's timestamp_utc to identify this payload
+    @State private var currentSessionTimestampUTC: String = ""
+    
     // Global payload for API request
     private var apiPayload: [String: Any] {
         let userId = UserDefaults.standard.string(forKey: "userId") ?? "unknown"
@@ -48,6 +51,11 @@ struct SessionRecapScreen: View {
         let d_fv = getDeviceFirmwareVersion()
         let d_i = getDeviceIdentifier()
         let timestamp_utc = getFormattedTimeUTC()
+        
+        // GPS Location Data
+        let latitude = sessionDataManager.sessionLatitude
+        let longitude = sessionDataManager.sessionLongitude
+        let hasGpsData = (latitude != nil && longitude != nil)
 
         return [
             "d_id": d_id,
@@ -61,7 +69,11 @@ struct SessionRecapScreen: View {
             "temp_f": temp_F,
             "hr_array": hr_array,
             "timestamp_utc": timestamp_utc,
-            "localTime": localTime
+            "localTime": localTime,
+            "sessionLatitude": latitude ?? "",
+            "sessionLongitude": longitude ?? "",
+            "hasGpsData": hasGpsData,
+            "activityType": sessionDataManager.activityType,
         ]
     }
     
@@ -73,17 +85,9 @@ struct SessionRecapScreen: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
     private func getTemperatureString() -> String {
-        if let last = sessionDataManager.lastSessionData,
-           let tempStr = last["lastSessionWaterTemp"],
-           let temp = Double(tempStr),
-           let unit = last["unitOfMeasure"] {
-            if unit == "Metric" {
-                let celsius = (temp - 32) * 5 / 9
-                return String(format: "%.1f °C", celsius)
-            }
-            return String(format: "%.1f °F", temp)
-        }
-        return "--"
+        let tempF = sessionDataManager.sessionTempF
+        guard tempF > 0 else { return "--" }
+        return sessionDataManager.formatTempDisplayWithUnit(tempF: tempF)
     }
     private func getMaxHR() -> String {
         if let max = sessionDataManager.HRArray.max() {
@@ -117,6 +121,13 @@ struct SessionRecapScreen: View {
     // API Functions
     private func makeAPIPostRequest() {
         print("=== STARTING API POST REQUEST ===")
+        
+        // Capture the current timestamp_utc for this session
+        currentSessionTimestampUTC = apiPayload["timestamp_utc"] as? String ?? ""
+        
+        // Save to pending_requests BEFORE making API call (to front of array, avoid duplicates)
+        savePendingRequest()
+        
         apiStatus = "Calling"
         retryAttempt = 0
         retryProgress = 1.0
@@ -134,7 +145,7 @@ struct SessionRecapScreen: View {
         ) else {
             print("Failed to create request")
             apiStatus = "Failed"
-            savePendingRequest()
+            // Note: Already saved to pending_requests in makeAPIPostRequest()
             return
         }
         
@@ -144,11 +155,12 @@ struct SessionRecapScreen: View {
                 let result = self.apiManager.handleAPIResponse(response as? HTTPURLResponse, data: data, error: error)
                 
                 if result.success {
-                    // Success
+                    // Success - remove from pending_requests
+                    self.removePendingRequest()
                     self.apiStatus = "Success"
                     print("=== API POST SUCCESS ===")
                 } else {
-                    // Failure
+                    // Failure - keep in pending_requests (already saved before API call)
                     print("API Error: \(result.message)")
                     self.handleAPIFailure()
                 }
@@ -175,7 +187,7 @@ struct SessionRecapScreen: View {
             apiStatus = "Failed"
             retryProgressTimer?.invalidate()
             print("=== API POST FAILED AFTER 3 RETRIES ===")
-            savePendingRequest()
+            // Note: Already saved to pending_requests in makeAPIPostRequest()
         }
     }
 
@@ -241,7 +253,8 @@ struct SessionRecapScreen: View {
         let optionContainerBackground = Color.black
         let titleColor = Color.white
         let iconColor = Color.white
-        let waterTempColor = Color(hex: "#8EC2FF")
+        let coldTempColor = Color(hex: "#8EC2FF")
+        let saunaTempColor = Color(hex: "#FF9500")
         let epicTimeColor = Color.yellow
 
         // Conditionally calculate the ideal border radius for the rounded rectangle
@@ -298,13 +311,13 @@ struct SessionRecapScreen: View {
                         navigationManager.goToHome()
                     }
                     ActionOptionContainer(
-                        iconName: "thermometer.and.liquid.waves.snowflake",
+                        iconName: sessionDataManager.activityType == "Cold Plunge" || sessionDataManager.activityType == "Cold Shower" ? "thermometer.and.liquid.waves.snowflake" : "thermometer.high",
                         iconSize: optionIconSize,
                         iconTitleGap: iconTitleGap,
-                        title: "Water Temp",
+                        title: "Temperature",
                         subtitle: getTemperatureString(),
-                        titleColor: waterTempColor,
-                        iconColor: waterTempColor,
+                        titleColor: sessionDataManager.activityType == "Cold Plunge" || sessionDataManager.activityType == "Cold Shower" ? coldTempColor : saunaTempColor,
+                        iconColor: sessionDataManager.activityType == "Cold Plunge" || sessionDataManager.activityType == "Cold Shower" ? coldTempColor : saunaTempColor,
                         backgroundColor: optionContainerBackground,
                         height: optionContainerHeight,
                         width: optionContainerWidth,
@@ -474,13 +487,58 @@ struct SessionRecapScreen: View {
         return identifier
     }
     
-    // Save failed session to UserDefaults for later upload
+    // Save session to pending_requests (before API call) - add to front of array, avoid duplicates
     private func savePendingRequest() {
         var pending = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
-        pending.append(apiPayload)
+        
+        // Get current timestamp_utc for this session
+        let currentTimestamp = apiPayload["timestamp_utc"] as? String ?? ""
+        
+        // Check if this payload already exists (avoid duplicates)
+        let alreadyExists = pending.contains { request in
+            if let existingTimestamp = request["timestamp_utc"] as? String {
+                return existingTimestamp == currentTimestamp
+            }
+            return false
+        }
+        
+        if !alreadyExists {
+            // Add to front of array (index 0)
+            pending.insert(apiPayload, at: 0)
+            UserDefaults.standard.set(pending, forKey: "pending_requests")
+            #if DEBUG
+            print("✅ Saved pending request to front of array (timestamp_utc: \(currentTimestamp))")
+            #endif
+        } else {
+            #if DEBUG
+            print("⚠️ Pending request already exists (timestamp_utc: \(currentTimestamp)), skipping duplicate")
+            #endif
+        }
+    }
+    
+    // Remove successful session from pending_requests by timestamp_utc
+    private func removePendingRequest() {
+        guard !currentSessionTimestampUTC.isEmpty else {
+            #if DEBUG
+            print("⚠️ Cannot remove pending request: timestamp_utc is empty")
+            #endif
+            return
+        }
+        
+        var pending = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
+        
+        // Find and remove the payload with matching timestamp_utc
+        pending.removeAll { request in
+            if let timestamp = request["timestamp_utc"] as? String {
+                return timestamp == currentSessionTimestampUTC
+            }
+            return false
+        }
+        
         UserDefaults.standard.set(pending, forKey: "pending_requests")
-        // print("=== SAVED PENDING REQUEST ===")
-        // print(apiPayload)
+        #if DEBUG
+        print("✅ Removed pending request (timestamp_utc: \(currentSessionTimestampUTC))")
+        #endif
     }
 
     // Helper: Calculate total time (in seconds)
@@ -489,15 +547,9 @@ struct SessionRecapScreen: View {
         return sessionDataManager.accumulatedSessionTime
     }
 
-    // Helper: Get session temperature (Fahrenheit)
+    // Helper: Get session temperature (Fahrenheit) for API payload
     private func getSessionTemperature() -> Double {
-        // Replace with your actual temperature property if needed
-        if let last = sessionDataManager.lastSessionData,
-           let tempStr = last["lastSessionWaterTemp"],
-           let temp = Double(tempStr) {
-            return temp
-        }
-        return 0.0
+        return sessionDataManager.sessionTempF
     }
 
     // Helper: Get formatted UTC time string

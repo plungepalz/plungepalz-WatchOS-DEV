@@ -56,6 +56,7 @@ struct SetTimerScreen: View {
                     .font(.system(size: headerTitleFontSize, weight: .bold))
                     .foregroundStyle(.white)
             }
+            .padding(.top, 20)
             .padding(.bottom, 8)
             
             // Timer Pickers
@@ -114,12 +115,8 @@ struct SetTimerScreen: View {
             
             // NEXT button
             Button(action: {
-                // Store the selected time in SessionDataManager
-                if sessionDataManager.lastSessionData == nil {
-                    sessionDataManager.lastSessionData = [:]
-                }
-                sessionDataManager.lastSessionData?["lastSessionTimeSet"] = formatTimeString()
-                navigationManager.nextScreen()
+                sessionDataManager.sessionTimeSeconds = selectedMinute * 60 + selectedSecond
+                navigationManager.goToScreen(.setTemperature)
             }) {
                 HStack {
                     Spacer(minLength: 0)
@@ -141,6 +138,7 @@ struct SetTimerScreen: View {
             
         }
         .background(Color.black.ignoresSafeArea())
+        .watchBackNavigation(navigationManager: navigationManager, iconSize: headerIconSize)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
     }
 }

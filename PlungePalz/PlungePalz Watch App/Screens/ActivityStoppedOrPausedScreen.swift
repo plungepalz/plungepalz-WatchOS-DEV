@@ -22,17 +22,9 @@ struct ActivityStoppedOrPausedScreen: View {
     }
     // Helper to get formatted temperature string from sessionDataManager
     private func getTemperatureString() -> String {
-        if let last = sessionDataManager.lastSessionData,
-           let tempStr = last["lastSessionWaterTemp"],
-           let temp = Double(tempStr),
-           let unit = last["unitOfMeasure"] {
-            if unit == "Metric" {
-                let celsius = (temp - 32) * 5 / 9
-                return String(format: "%.1f °C", celsius)
-            }
-            return String(format: "%.1f °F", temp)
-        }
-        return "--"
+        let tempF = sessionDataManager.sessionTempF
+        guard tempF > 0 else { return "--" }
+        return sessionDataManager.formatTempDisplayWithUnit(tempF: tempF)
     }
     
     var body: some View {
@@ -104,11 +96,27 @@ struct ActivityStoppedOrPausedScreen: View {
                         subtitleFontSize: optionSubtitleFontSize,
                         cornerRadius: optionContainerCornerRadius
                     ) {
-                        // print("Continue option clicked. Resuming workout and navigating to CountdownActivatedScreen.")
+                        #if DEBUG
+                        print("Continue option clicked. Activity type: \(sessionDataManager.activityType)")
+                        #endif
+                        
+                        // Resume workout
                         if workoutManager.isActive && workoutManager.isPaused {
                             workoutManager.resumeWorkout()
                         }
-                        navigationManager.goToScreen(.countdownActivated)
+                        
+                        // Navigate based on activity type
+                        if sessionDataManager.activityType == "Sauna" || sessionDataManager.activityType == "Cold Shower" {
+                            #if DEBUG
+                            print("Navigating back to ActivityStartedScreen")
+                            #endif
+                            navigationManager.goToScreen(.activityStarted)
+                        } else {
+                            #if DEBUG
+                            print("Navigating back to CountdownActivatedScreen")
+                            #endif
+                            navigationManager.goToScreen(.countdownActivated)
+                        }
                     }
                     ActionOptionContainer(
                         iconName: "trash",
@@ -199,11 +207,8 @@ private struct ActionOptionContainer: View {
 #Preview {
     let previewManager: SessionDataManager = {
         let manager = SessionDataManager()
-        manager.lastSessionData = [
-            "lastSessionTimeSet": "3:31",
-            "lastSessionWaterTemp": "45.1",
-            "unitOfMeasure": "Imperial"
-        ]
+        manager.unitOfMeasure = "Imperial"
+        manager.sessionTempF = 45.1
         return manager
     }()
     return ActivityStoppedOrPausedScreen(navigationManager: NavigationManager())

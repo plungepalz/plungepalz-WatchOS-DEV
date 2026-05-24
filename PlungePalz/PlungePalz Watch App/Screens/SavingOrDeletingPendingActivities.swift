@@ -15,18 +15,19 @@ struct SavingOrDeletingPendingActivities: View {
     }
     
     @ObservedObject var navigationManager: NavigationManager
+    @EnvironmentObject var sessionDataManager: SessionDataManager
     let mode: ActivityMode
     
     // API Status Management
     @StateObject private var apiManager = APIs.shared
-    @State private var apiStatus: String = "Calling" // "Calling", "Success", "Retrying", "Failed"
+    @State private var apiStatus: String = "Calling" // "Calling", "Success", "Retrying", "Failed", "Not Subscribed"
     @State private var apiTimer: Timer?
     @State private var retryAttempt: Int = 0
     @State private var retryProgress: CGFloat = 1.0
     @State private var retryProgressTimer: Timer?
     
     enum CountdownState {
-        case initialCountdown, apiCalling, successCountdown, failed
+        case initialCountdown, apiCalling, successCountdown, failed, notSubscribed
     }
     
     @State private var currentState: CountdownState = .initialCountdown
@@ -50,6 +51,8 @@ struct SavingOrDeletingPendingActivities: View {
             return mode == .saving ? "Successful" : "Deleted"
         case .failed:
             return "Check WiFi"
+        case .notSubscribed:
+            return "Not Subscribed"
         }
     }
     
@@ -62,6 +65,8 @@ struct SavingOrDeletingPendingActivities: View {
         case .successCountdown:
             return .green
         case .failed:
+            return .red
+        case .notSubscribed:
             return .red
         }
     }
@@ -122,6 +127,10 @@ struct SavingOrDeletingPendingActivities: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: countdownFontSize, weight: .bold))
                         .foregroundColor(.red)
+                } else if currentState == .notSubscribed {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: countdownFontSize, weight: .bold))
+                        .foregroundColor(.red)
                 } else {
                     Text("\(Int(ceil(countdown)))")
                         .font(.system(size: countdownFontSize, weight: .bold))
@@ -170,6 +179,8 @@ struct SavingOrDeletingPendingActivities: View {
             return "Try Again"
         case .apiCalling:
             return "Waiting..."
+        case .notSubscribed:
+            return "Help"
         }
     }
     
@@ -188,6 +199,9 @@ struct SavingOrDeletingPendingActivities: View {
         case .apiCalling:
             // No action needed during apiCalling state
             break
+        case .notSubscribed:
+            // Navigate to NotSubscribed screen
+            navigationManager.goToScreen(.notSubscribed)
         }
     }
     
@@ -208,10 +222,8 @@ struct SavingOrDeletingPendingActivities: View {
                     countdown = totalTime
                     currentState = .successCountdown
                 } else { // mode is .saving
-                    currentState = .apiCalling
-                    
-                    // Make actual API call to save pending requests
-                    makeAPIPostRequest()
+                    // Check subscription status before making API call
+                    checkSubscriptionAndProceed()
                 }
             }
         }
@@ -223,6 +235,56 @@ struct SavingOrDeletingPendingActivities: View {
 
     private func stopTimer() {
         self.timer.upstream.connect().cancel()
+    }
+    
+    // MARK: - Subscription Check
+    private func checkSubscriptionAndProceed() {
+        // Check if we have WiFi/network connection
+        let isOffline = UserDefaults.standard.bool(forKey: "isOffline")
+        
+        if isOffline {
+            // No WiFi - proceed with API call anyway (will fail and show failed state)
+            #if DEBUG
+            print("📡 No WiFi detected, proceeding with API call")
+            #endif
+            currentState = .apiCalling
+            makeAPIPostRequest()
+            return
+        }
+        
+        // We have WiFi - fetch latest subscription status
+        #if DEBUG
+        print("📡 WiFi detected, checking subscription status...")
+        #endif
+        
+        currentState = .apiCalling // Show loading state while checking
+        
+        sessionDataManager.fetchLastSessionData { success in
+            if success {
+                // API call succeeded - check subscription status
+                let isUserSubscribed = UserDefaults.standard.bool(forKey: "isUserSubscribed")
+                
+                #if DEBUG
+                print("👤 Subscription check result: \(isUserSubscribed)")
+                #endif
+                
+                if isUserSubscribed {
+                    // User is subscribed - proceed with saving pending requests
+                    self.makeAPIPostRequest()
+                } else {
+                    // User is not subscribed - show not subscribed state
+                    self.currentState = .notSubscribed
+                    self.countdown = self.totalTime
+                    self.apiStatus = "Not Subscribed"
+                }
+            } else {
+                // API call failed - proceed anyway (will show failed state if save fails)
+                #if DEBUG
+                print("⚠️ Subscription check failed, proceeding with save attempt")
+                #endif
+                self.makeAPIPostRequest()
+            }
+        }
     }
     
     // API Functions

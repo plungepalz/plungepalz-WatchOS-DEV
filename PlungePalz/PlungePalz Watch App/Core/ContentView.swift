@@ -21,8 +21,6 @@ struct ContentView: View {
                 ConnectDeviceScreen(navigationManager: navigationManager)
             case .notSubscribed:
                 NotSubscribed(navigationManager: navigationManager)
-            case .saunaOrColdShowerMessage:  // Activity info screen
-                SaunaOrColdShowerMessage(navigationManager: navigationManager)
             case .selectSession:
                 SelectSessionScreen(navigationManager: navigationManager)
             case .setTimer:
@@ -47,6 +45,19 @@ struct ContentView: View {
                 PendingSaveSessionsScreen(navigationManager: navigationManager)
             case .savingOrDeletingPendingActivities:
                 SavingOrDeletingPendingActivities(navigationManager: navigationManager, mode: navigationManager.activityMode)
+            // MARK: - Routine Screens
+            case .routineView:
+                RoutineViewScreen(navigationManager: navigationManager)
+            case .routineGetReady:
+                RoutineGetReadyScreen(navigationManager: navigationManager)
+            case .routineTransition:
+                RoutineTransitionScreen(navigationManager: navigationManager)
+            case .routineModality:
+                RoutineModalityScreen(navigationManager: navigationManager)
+            case .routinePause:
+                RoutinePauseScreen(navigationManager: navigationManager)
+            case .routineRecap:
+                RoutineRecapScreen(navigationManager: navigationManager)
             }
         }
         .onChange(of: navigationManager.currentScreen) { newScreen in

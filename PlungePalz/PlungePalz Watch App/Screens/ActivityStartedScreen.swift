@@ -2,13 +2,12 @@
 //  ActivityStartedScreen.swift
 //  PlungePalz Watch App
 //
-//  Screen for Sauna and Cold Shower activities (countup-only mode with temperature sensor)
+//  Screen for Sauna and Cold Shower activities (countup-only mode)
 //
 
 import SwiftUI
 import WatchKit
 import HealthKit
-
 
 struct ActivityStartedScreen: View {
     // MARK: - Navigation
@@ -31,7 +30,6 @@ struct ActivityStartedScreen: View {
     @StateObject private var healthKitManager = HealthKitManager.shared
     
     // MARK: - Timer State
-    @State private var countupSeconds: Int = 0
     @State private var timer: Timer?
     
     // MARK: - Heart Rate State (every 5 seconds)
@@ -39,20 +37,43 @@ struct ActivityStartedScreen: View {
     @State private var heartRateTimer: Timer?
     @State private var heartRateSecondCounter: Int = 0
     
-    // MARK: - Temperature Sensor State (every 5 seconds)
-    @State private var currentSensorTemp: Double? = nil
-    @State private var temperatureTimer: Timer?
-    @State private var temperatureSecondCounter: Int = 0
-    @State private var isUltraWatch: Bool = false
-    
-    // MARK: - Default Temperature
-    private var defaultTemperature: Double {
-        if sessionDataManager.activityType == "Sauna" {
-            return sessionDataManager.default_sauna_temp_F
-        } else if sessionDataManager.activityType == "Cold Shower" {
-            return sessionDataManager.default_cold_shower_temp_F
+    // MARK: - Session Temperature
+    private var sessionTemperatureString: String {
+        let tempF = sessionDataManager.sessionTempF
+        guard tempF > 0 else { return "--" }
+        return sessionDataManager.formatTempDisplayWithUnit(tempF: tempF)
+    }
+
+    // MARK: - Activity Icon
+    private var activityIcon: String {
+        switch sessionDataManager.activityType {
+        case "Sauna":
+            return "heater.vertical"
+        case "Cold Shower":
+            return "shower"
+        case "Steam Room":
+            return "cloud.fog"
+        case "Hot Tub":
+            return "water.waves"
+        default:
+            return "snowflake"
         }
-        return 45.0 // Fallback
+    }
+
+    // MARK: - Activity Color
+    private var activityColor: Color {
+        switch sessionDataManager.activityType {
+        case "Sauna":
+            return Color.orange
+        case "Cold Shower":
+            return Color.blue
+        case "Steam Room":
+            return Color.gray
+        case "Hot Tub":
+            return Color.cyan
+        default:
+            return Color.white
+        }
     }
     
     // Colors
@@ -79,156 +100,136 @@ struct ActivityStartedScreen: View {
         let screenWidth = WKInterfaceDevice.current().screenBounds.width
         let screenHeight = WKInterfaceDevice.current().screenBounds.height
         
-        // Adaptive sizing
-        let timerFontSize: CGFloat = screenHeight <= 197 ? 50 : (screenHeight <= 224 ? 55 : 60)
-        let sectionTitleSize: CGFloat = screenHeight <= 197 ? 14 : (screenHeight <= 224 ? 15 : 16)
-        let temperatureValueSize: CGFloat = screenHeight <= 197 ? 28 : (screenHeight <= 224 ? 32 : 36)
-        let hrValueSize: CGFloat = screenHeight <= 197 ? 32 : (screenHeight <= 224 ? 36 : 40)
-        let stopIconSize: CGFloat = screenHeight <= 197 ? 20 : (screenHeight <= 224 ? 22 : 24)
-        
-        ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
-            
-            VStack(spacing: 12) {
-                // Timer Display (Countup)
-                Text(formatTime(countupSeconds))
-                    .font(.system(size: timerFontSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.top, 8)
-                
-                // Temperature Section
-                VStack(spacing: 8) {
-                    HStack(spacing: 20) {
-                        // Default Temperature
-                        VStack(spacing: 4) {
-                            Text("Default")
-                                .font(.system(size: sectionTitleSize, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.7))
-                            Text(String(format: "%.0f°F", defaultTemperature))
-                                .font(.system(size: temperatureValueSize, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
-                        
-                        Divider()
-                            .background(Color.white.opacity(0.3))
-                            .frame(height: 40)
-                        
-                        // Sensor Temperature
-                        VStack(spacing: 4) {
-                            Text("Sensor")
-                                .font(.system(size: sectionTitleSize, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.7))
-                            
-                            if isUltraWatch {
-                                if let temp = currentSensorTemp {
-                                    Text(String(format: "%.1f°F", temp))
-                                        .font(.system(size: temperatureValueSize, weight: .bold))
-                                        .foregroundStyle(Color.blue)
-                                } else {
-                                    Text("--°F")
-                                        .font(.system(size: temperatureValueSize, weight: .bold))
-                                        .foregroundStyle(.white.opacity(0.5))
-                                }
-                            } else {
-                                Text("N/A")
-                                    .font(.system(size: temperatureValueSize, weight: .bold))
-                                    .foregroundStyle(.white.opacity(0.5))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.1))
-                    )
-                }
-                .padding(.horizontal, 8)
-                
-                // Heart Rate Section
-                VStack(spacing: 8) {
-                    Text("Heart Rate")
-                        .font(.system(size: sectionTitleSize, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                    
-                    HStack(spacing: 4) {
-                        // Heart Rate Bar Chart (5 boxes)
-                        ForEach(0..<5) { index in
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(index <= hrBoxIndex(for: heartRate) ? hrBoxColors[hrBoxIndex(for: heartRate)] : Color.gray.opacity(0.3))
-                                .frame(width: (screenWidth - 80) / 5, height: 12)
-                        }
-                    }
-                    
-                    if let hr = heartRate {
-                        Text("\(hr) BPM")
-                            .font(.system(size: hrValueSize, weight: .bold))
-                            .foregroundStyle(hrBoxColors[hrBoxIndex(for: heartRate)])
-                    } else {
-                        Text("-- BPM")
-                            .font(.system(size: hrValueSize, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.5))
-                    }
-                }
-                .padding(.horizontal, 8)
-                
-                Spacer()
-                
-                // Stop Button (only when water lock disabled)
-                if !waterLockManager.isSystemWaterLockEnabled {
-                    Button(action: {
-                        handleStopActivity()
-                    }) {
-                        HStack {
-                            Image(systemName: "stop.fill")
-                                .font(.system(size: stopIconSize, weight: .bold))
-                            Text("Stop")
-                                .font(.system(size: 16, weight: .bold))
-                        }
+        // Use CountdownActivatedScreen UI Config Variables
+        let stopIconTopCornerPadding = WatchGlobalUIConfig.CountdownActivatedScreen.stopIconTopCornerPadding(for: screenSize)
+        let stopIconSize = WatchGlobalUIConfig.CountdownActivatedScreen.stopIconSize(for: screenSize)
+        let topPaddingTimer = WatchGlobalUIConfig.CountdownActivatedScreen.topPaddingTimer(for: screenSize)
+        let topPaddingTempText = WatchGlobalUIConfig.CountdownActivatedScreen.topPaddingTempText(for: screenSize)
+        let timerFontSize = WatchGlobalUIConfig.CountdownActivatedScreen.timerFontSize(for: screenSize)
+        let temperatureFontSize = WatchGlobalUIConfig.CountdownActivatedScreen.temperatureFontSize(for: screenSize)
+        let temperatureIconSize = WatchGlobalUIConfig.CountdownActivatedScreen.temperatureIconSize(for: screenSize)
+        let dividerLine1TopPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine1TopPadding(for: screenSize)
+        let dividerLine1BottomPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine1BottomPadding(for: screenSize)
+        let dividerLine2TopPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine2TopPadding(for: screenSize)
+        let dividerLine2BottomPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine2BottomPadding(for: screenSize)
+        let dividerLine3TopPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine3TopPadding(for: screenSize)
+        let dividerLine3BottomPadding = WatchGlobalUIConfig.CountdownActivatedScreen.dividerLine3BottomPadding(for: screenSize)
+        let paddingBetweenHeartRateAndBarChart = WatchGlobalUIConfig.CountdownActivatedScreen.paddingBetweenHeartRateAndBarChart(for: screenSize)
+
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                // Single solid black background
+                Color.black
+
+                // Foreground content
+                VStack(spacing: 0) {
+                    // Timer (Countup Mode)
+                    Text(formatTimer(Int(workoutManager.elapsedTime), isCountup: true))
+                        .font(.system(size: timerFontSize, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
-                        .background(Color.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, topPaddingTimer)
+
+                    // First divider line
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(height: 1)
+                        .padding(.bottom, dividerLine1BottomPadding)
+                        .padding(.top, dividerLine1TopPadding)
+
+                    // Temperature Section
+                    VStack(spacing: 4) {
+                        Text("Temp.")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+
+                        HStack(spacing: 6) {
+                            Image(systemName: activityIcon)
+                                .foregroundColor(activityColor)
+                                .font(.system(size: temperatureIconSize, weight: .regular))
+                            Text(sessionTemperatureString)
+                                .font(.system(size: temperatureFontSize, weight: .semibold))
+                                .foregroundColor(activityColor)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 12)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, topPaddingTempText)
+                    
+                    // Second divider line
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(height: 1)
+                        .padding(.top, dividerLine2TopPadding)
+                        .padding(.bottom, dividerLine2BottomPadding)
+                    
+                    // Heart Rate Section (matching CountdownActivatedScreen exactly)
+                    HStack(spacing: 8) {
+                        if healthKitManager.isHeartRatePermissionGranted, let hr = heartRate, hr > 0 {
+                            if #available(watchOS 11.0, *) {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(.red)
+                                    .symbolEffect(.breathe.pulse.byLayer, options: .repeat(.continuous))
+                            } else {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(.red)
+                            }
+                            Text("\(hr) BPM")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                        } else {
+                            Image(systemName: "heart.slash")
+                                .foregroundColor(.gray)
+                            Text("-- BPM")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, paddingBetweenHeartRateAndBarChart)
+                    
+                    // Heart Rate Bar Chart (matching CountdownActivatedScreen exactly)
+                    HStack(alignment: .bottom, spacing: 8) {
+                        ForEach(0..<5, id: \.self) { idx in
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(hrBoxColors[idx])
+                                .frame(
+                                    width: 22,
+                                    height: hrBoxIndex(for: heartRate) == idx ? 28 : 8,
+                                    alignment: .bottom
+                                )
+                                .animation(.easeInOut(duration: 0.4), value: hrBoxIndex(for: heartRate))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    Spacer()
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+                
+                // Stop button overlay in top-left corner (matching CountdownActivatedScreen)
+                VStack {
+                    HStack {
+                        Button(action: {
+                            #if DEBUG
+                            print("Stop button tapped")
+                            #endif
+                            handleStopActivity()
+                        }) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: stopIconSize, weight: .medium))
+                                .foregroundColor(waterLockManager.shouldDisableStopButton ? .gray : .red)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(waterLockManager.shouldDisableStopButton)
+                        .padding(.top, stopIconTopCornerPadding)
+                        .padding(.leading, stopIconTopCornerPadding)
+                        
+                        Spacer()
+                    }
+                    Spacer()
                 }
             }
-            
-            // Water Lock Overlay (gesture detection areas)
-            if waterLockManager.isSystemWaterLockEnabled {
-                GeometryReader { geometry in
-                    ZStack {
-                        // Center area - Quick pause (1.0s)
-                        Rectangle()
-                            .fill(Color.clear)
-                            .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.4)
-                            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                            .onLongPressGesture(minimumDuration: 1.0) {
-                                handleStopActivity()
-                            }
-                        
-                        // Top-left area - Normal pause (1.5s)
-                        Rectangle()
-                            .fill(Color.clear)
-                            .frame(width: geometry.size.width * 0.4, height: geometry.size.height * 0.3)
-                            .position(x: geometry.size.width * 0.2, y: geometry.size.height * 0.15)
-                            .onLongPressGesture(minimumDuration: 1.5) {
-                                handleStopActivity()
-                            }
-                        
-                        // Top-right area - Stop session (1.5s)
-                        Rectangle()
-                            .fill(Color.clear)
-                            .frame(width: geometry.size.width * 0.4, height: geometry.size.height * 0.3)
-                            .position(x: geometry.size.width * 0.8, y: geometry.size.height * 0.15)
-                            .onLongPressGesture(minimumDuration: 1.5) {
-                                handleStopActivity()
-                            }
-                    }
-                }
-            }
+            .ignoresSafeArea()
         }
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
@@ -243,37 +244,62 @@ struct ActivityStartedScreen: View {
     private func setupActivityScreen() {
         #if DEBUG
         print("🎬 ActivityStartedScreen: Setting up for \(sessionDataManager.activityType)")
+        print("Workout manager isActive: \(workoutManager.isActive)")
+        print("Workout elapsed time: \(workoutManager.elapsedTime)")
+        print("HRArray count: \(sessionDataManager.HRArray.count)")
         #endif
         
-        // Check if watch is Ultra model
-        isUltraWatch = checkIfUltraWatch()
+        // Determine if this is a new session or resuming from pause
+        let isResumingSession = workoutManager.isActive && workoutManager.elapsedTime > 0
         
-        // Enable water lock
-        waterLockManager.enableWaterLock()
+        // Start workout session if not already active
+        if !workoutManager.isActive {
+            #if DEBUG
+            print("=== ACTIVITY STARTED SCREEN: Starting new workout session ===")
+            #endif
+            workoutManager.startWorkout()
+            
+            // Wait for workout session to be active before enabling Water Lock
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                #if DEBUG
+                print("=== ACTIVITY STARTED SCREEN: Enabling Water Lock mode (delayed) ===")
+                print("Workout manager isActive: \(self.workoutManager.isActive)")
+                print("Workout state: \(self.workoutManager.workoutState)")
+                #endif
+                self.waterLockManager.enableWaterLock()
+            }
+        } else {
+            // Workout session is already active, enable Water Lock immediately
+            #if DEBUG
+            print("=== ACTIVITY STARTED SCREEN: Workout already active, enabling Water Lock immediately ===")
+            #endif
+            waterLockManager.enableWaterLock()
+        }
         
-        // Start workout session
-        workoutManager.startWorkout()
-        
-        // Set session data
+        // Set session data - always countup mode, no countdown
         sessionDataManager.currentTimerMode = "Countup"
         sessionDataManager.originalCountdownTimeSeconds = 0
         
-        // Start timers
-        startCountupTimer()
+        // Only reset session tracking for brand new sessions, not when resuming
+        if !isResumingSession {
+            #if DEBUG
+            print("=== ACTIVITY STARTED SCREEN: New session - resetting tracking ===")
+            #endif
+            sessionDataManager.resetSessionTracking()
+        } else {
+            #if DEBUG
+            print("=== ACTIVITY STARTED SCREEN: Resuming session - preserving data ===")
+            print("Preserved HRArray count: \(sessionDataManager.HRArray.count)")
+            print("Preserved elapsed time: \(workoutManager.elapsedTime)")
+            #endif
+        }
+        
+        // Start heart rate monitoring
         startHeartRateMonitoring()
         
-        if isUltraWatch {
-            startTemperatureSensorMonitoring()
-        }
-        
-        // Request HealthKit permissions
-        healthKitManager.requestHeartRatePermission { granted in
-            if granted {
-                #if DEBUG
-                print("✅ Heart rate permission granted")
-                #endif
-            }
-        }
+        #if DEBUG
+        print("✅ ActivityStartedScreen setup complete")
+        #endif
     }
     
     // MARK: - Cleanup
@@ -282,151 +308,78 @@ struct ActivityStartedScreen: View {
         print("🧹 ActivityStartedScreen: Cleaning up")
         #endif
         
-        timer?.invalidate()
-        timer = nil
-        heartRateTimer?.invalidate()
-        heartRateTimer = nil
-        temperatureTimer?.invalidate()
-        temperatureTimer = nil
+        // Stop heart rate monitoring
+        stopHeartRateMonitoring()
         
-        healthKitManager.stopHeartRateMonitoring()
-    }
-    
-    // MARK: - Check Ultra Watch
-    private func checkIfUltraWatch() -> Bool {
-        let device = WKInterfaceDevice.current()
-        let model = device.model
+        // FORCE stop ALL HealthKit monitoring
+        healthKitManager.forceStopAllHealthKitQueries()
         
-        // Check if the model contains "Ultra"
-        let isUltra = model.contains("Ultra")
+        // End active session tracking
+        backgroundTimerManager.endActiveSession()
+        
+        // Disable water lock
+        waterLockManager.disableWaterLock()
         
         #if DEBUG
-        print("📱 Watch Model: \(model)")
-        print("🔍 Is Ultra Watch: \(isUltra)")
+        print("✅ ActivityStartedScreen cleanup complete")
         #endif
-        
-        return isUltra
-    }
-    
-    // MARK: - Countup Timer
-    private func startCountupTimer() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            countupSeconds += 1
-            sessionDataManager.accumulatedSessionTime = countupSeconds
-        }
     }
     
     // MARK: - Heart Rate Monitoring (every 5 seconds)
     private func startHeartRateMonitoring() {
+        // Stop any existing timer
         heartRateTimer?.invalidate()
         heartRateSecondCounter = 0
         
-        // Start HealthKit monitoring for real-time display
-        healthKitManager.startHeartRateMonitoring { heartRateValue in
-            DispatchQueue.main.async {
-                self.heartRate = heartRateValue
-            }
-        }
-        
-        // Timer for storing HR every 5 seconds
+        // Start new timer (fires every 1 second, but we only query HR every 5 seconds)
         heartRateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             heartRateSecondCounter += 1
             
             if heartRateSecondCounter >= 5 {
-                // Store heart rate every 5 seconds
-                if let hr = heartRate, hr > 0 {
-                    sessionDataManager.HRArray.append(hr)
-                    #if DEBUG
-                    print("❤️ Stored HR: \(hr), Total: \(sessionDataManager.HRArray.count)")
-                    #endif
-                } else {
-                    let avgHR = getAverageHeartRate()
-                    sessionDataManager.HRArray.append(avgHR)
-                    #if DEBUG
-                    print("❤️ Stored Avg HR: \(avgHR), Total: \(sessionDataManager.HRArray.count)")
-                    #endif
-                }
                 heartRateSecondCounter = 0
+                queryHeartRate()
             }
         }
+        
+        // Query immediately on start
+        queryHeartRate()
+        
+        #if DEBUG
+        print("❤️ Heart rate monitoring started (every 5 seconds)")
+        #endif
     }
     
-    // MARK: - Temperature Sensor Monitoring (every 5 seconds, Ultra only)
-    private func startTemperatureSensorMonitoring() {
-        guard isUltraWatch else { return }
+    private func stopHeartRateMonitoring() {
+        heartRateTimer?.invalidate()
+        heartRateTimer = nil
         
-        temperatureTimer?.invalidate()
-        temperatureSecondCounter = 0
-        
-        temperatureTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            temperatureSecondCounter += 1
-            
-            if temperatureSecondCounter >= 5 {
-                readTemperatureSensor()
-                temperatureSecondCounter = 0
-            }
-        }
+        #if DEBUG
+        print("❤️ Heart rate monitoring stopped")
+        #endif
     }
     
-    // MARK: - Read Temperature Sensor
-    private func readTemperatureSensor() {
-        guard isUltraWatch else { return }
+    private func queryHeartRate() {
+        guard let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) else { return }
         
-        // Use HealthKit to read water temperature during workout
-        guard let tempType = HKQuantityType.quantityType(forIdentifier: .underwaterDepth) else {
-            #if DEBUG
-            print("⚠️ Temperature sensor type not available")
-            #endif
-            return
-        }
-        
-        // Create a query for the most recent temperature sample
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let query = HKSampleQuery(sampleType: tempType, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { query, samples, error in
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        let query = HKSampleQuery(sampleType: hrType, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { _, results, error in
+            guard let sample = results?.first as? HKQuantitySample else { return }
             
-            if let error = error {
-                #if DEBUG
-                print("❌ Temperature sensor error: \(error.localizedDescription)")
-                #endif
-                return
-            }
-            
-            // For Ultra watches during water workouts, temperature is available
-            // Note: This is a placeholder - actual implementation depends on workout type
-            // For now, we'll simulate temperature readings
+            let hr = Int(sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())))
             
             DispatchQueue.main.async {
-                // Simulate temperature reading (replace with actual sensor API when available)
-                let simulatedTemp = defaultTemperature + Double.random(in: -2.0...2.0)
-                currentSensorTemp = simulatedTemp
+                self.heartRate = hr
                 
-                // Store temperature reading
-                let tempString = String(format: "%.1f", simulatedTemp)
-                sessionDataManager.SW_Temp_Array_F.append(tempString)
+                // Store heart rate in session data
+                self.sessionDataManager.addHeartRate(hr)
                 
                 #if DEBUG
-                print("🌡️ Temperature reading: \(tempString)°F, Total: \(sessionDataManager.SW_Temp_Array_F.count)")
+                print("❤️ Heart rate: \(hr) BPM, Total samples: \(self.sessionDataManager.HRArray.count)")
                 #endif
             }
         }
         
         HKHealthStore().execute(query)
-    }
-    
-    // MARK: - Average Heart Rate
-    private func getAverageHeartRate() -> Int {
-        guard !sessionDataManager.HRArray.isEmpty else { return 80 }
-        
-        // Get last 5 valid readings
-        let recentReadings = sessionDataManager.HRArray.suffix(5).filter { $0 > 0 && $0 < 220 }
-        
-        if !recentReadings.isEmpty {
-            let sum = recentReadings.reduce(0, +)
-            return sum / recentReadings.count
-        }
-        
-        return 80
     }
     
     // MARK: - Stop Activity
@@ -435,15 +388,30 @@ struct ActivityStartedScreen: View {
         print("⏹️ Stop button pressed")
         #endif
         
-        // Pause workout
-        workoutManager.pauseWorkout()
+        // IMMEDIATELY clean up all timers
+        stopHeartRateMonitoring()
+        backgroundTimerManager.completelyStopAllTimers()
         
-        // Navigate to stopped/paused screen
+        // Set both epic time and accumulated time (they're the same for Sauna/Cold Shower)
+        let elapsedTime = Int(workoutManager.elapsedTime)
+        sessionDataManager.epicTime = max(0, elapsedTime)
+        sessionDataManager.accumulatedSessionTime = max(0, elapsedTime)
+        
+        #if DEBUG
+        print("✅ Set epicTime and accumulatedSessionTime to: \(elapsedTime) seconds")
+        #endif
+        
+        // Pause workout session
+        if workoutManager.isActive && !workoutManager.isPaused {
+            workoutManager.pauseWorkout()
+        }
+        
+        // Navigate to pause screen
         navigationManager.goToScreen(.activityStoppedOrPaused)
     }
     
     // MARK: - Format Time
-    private func formatTime(_ totalSeconds: Int) -> String {
+    private func formatTimer(_ totalSeconds: Int, isCountup: Bool) -> String {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, seconds)

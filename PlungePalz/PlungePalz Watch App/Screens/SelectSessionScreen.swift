@@ -11,20 +11,21 @@ struct SelectSessionScreen: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @StateObject private var screenManager = WatchScreenManager()
     @ObservedObject var navigationManager: NavigationManager
-    @State private var selectedOption: OptionType? = nil
-    
-    enum OptionType {
-        case useLast
-        case createNew
+    private var hasUseLast: Bool {
+        sessionDataManager.hasUseLastForCurrentActivity
     }
-    
+
+    private var useLastSubtitle: String? {
+        guard let params = sessionDataManager.currentActivitySettings?.latestSessionParams else { return nil }
+        let timeStr = SessionDataManager.formatTime(seconds: params.totalTimeS)
+        let tempStr = sessionDataManager.formatTempDisplay(tempF: params.tempF)
+        return "\(timeStr) | \(tempStr)"
+    }
+
     var body: some View {
 
-        // ====== Define all adaptive UI constants for SelectSessionScreen ======//
         let screenSize = screenManager.currentScreenSize
-        let screenHeight = WKInterfaceDevice.current().screenBounds.height
 
-        // Container Adaptive Constants
         let optionContainerPaddingHorizontal = WatchGlobalUIConfig.SelectSessionScreen.optionContainerPaddingHorizontal(for: screenSize)
         let optionContainerTitleFontSize = WatchGlobalUIConfig.SelectSessionScreen.optionContainerTitleFontSize(for: screenSize)
         let optionContainerSubtitleFontSize = WatchGlobalUIConfig.SelectSessionScreen.optionContainerSubtitleFontSize(for: screenSize)
@@ -34,20 +35,16 @@ struct SelectSessionScreen: View {
                 .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 16) {
-                    if let lastSession = sessionDataManager.lastSessionData {
+                    if hasUseLast, let subtitle = useLastSubtitle {
                         Button(action: {
-                            // print("=== SELECT SESSION SCREEN: Use Last button tapped ===")
-                            // print("lastSession data: \(lastSession)")
-                            selectedOption = .useLast
+                            sessionDataManager.applyUseLastSession()
                             navigationManager.originalNavigationSource = .selectSession
-                            // print("=== SELECT SESSION SCREEN: Navigating to getReadyCountdownTimer ===")
                             navigationManager.goToScreen(.getReadyCountdownTimer)
                         }) {
                             OptionContainer(
                                 iconName: "repeat",
                                 title: "Use Last",
-                                subtitle: "\(lastSession["lastSessionTimeSet"] ?? "") | \(formattedTemp(lastSession))",
-                                isSelected: selectedOption == .useLast,
+                                subtitle: subtitle,
                                 titleFontSize: optionContainerTitleFontSize,
                                 subtitleFontSize: optionContainerSubtitleFontSize
                             )
@@ -55,14 +52,16 @@ struct SelectSessionScreen: View {
                         .buttonStyle(PlainButtonStyle())
                     }
                     Button(action: {
-                        selectedOption = .createNew
-                        navigationManager.goToScreen(.setTimer)
+                        if sessionDataManager.isCurrentActivityCountdown {
+                            navigationManager.goToScreen(.setTimer)
+                        } else {
+                            navigationManager.goToScreen(.setTemperature)
+                        }
                     }) {
                         OptionContainer(
                             iconName: "plus",
                             title: "Create New Session",
                             subtitle: nil,
-                            isSelected: selectedOption == .createNew,
                             titleFontSize: optionContainerTitleFontSize,
                             subtitleFontSize: optionContainerSubtitleFontSize
                         )
@@ -71,35 +70,15 @@ struct SelectSessionScreen: View {
                 }
                 .padding(.vertical, 20)
                 .padding(.horizontal, optionContainerPaddingHorizontal)
+                .padding(.top, 0)
             }
         }
-        .onAppear {
-            if sessionDataManager.lastSessionData != nil {
-                selectedOption = .useLast
-            } else {
-                selectedOption = .createNew
-            }
-        }
-        .onChange(of: sessionDataManager.lastSessionData) { newValue in
-            if newValue != nil {
-                selectedOption = .useLast
-            } else {
-                selectedOption = .createNew
-            }
-        }
+        .watchBackNavigation(
+            navigationManager: navigationManager,
+            iconSize: 32, // Override with a larger size for this specific screen if needed
+            topPadding: -40 // Tweak this small value to nudge it up or down perfectly
+        )
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
-    }
-    
-    func formattedTemp(_ data: [String: String]) -> String {
-        guard let tempFStr = data["lastSessionWaterTemp"],
-              let tempF = Double(tempFStr),
-              let unit = data["unitOfMeasure"] else { return "--" }
-        if unit == "Metric" {
-            let tempC = (tempF - 32) * 5 / 9
-            return String(format: "%.1f ℃", tempC)
-        } else {
-            return String(format: "%.1f ℉", tempF)
-        }
     }
 }
 
@@ -107,10 +86,11 @@ struct OptionContainer: View {
     let iconName: String
     let title: String
     let subtitle: String?
-    let isSelected: Bool
     let titleFontSize: CGFloat
     let subtitleFontSize: CGFloat
-    
+
+    private static let containerBackground = Color.black
+
     var body: some View {
 
         VStack(alignment: .leading, spacing: 6) {
@@ -142,26 +122,26 @@ struct OptionContainer: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? Color.black : Color(red: 0.07, green: 0.18, blue: 0.45))
+        .background(Self.containerBackground)
         .foregroundColor(.white)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(isSelected ? Color.white : Color.clear, lineWidth: 3)
-        )
     }
 }
 
 #Preview {
     let previewManager: SessionDataManager = {
         let manager = SessionDataManager()
-        manager.lastSessionData = [
-            "lastSessionTimeSet": "3:15",
-            "lastSessionWaterTemp": "45.5",
-            "unitOfMeasure": "Imperial"
+        manager.unitOfMeasure = "Imperial"
+        manager.activityType = "Cold Plunge"
+        manager.activityTypeSettings = [
+            ActivityTypeSetting(
+                activityType: "Cold Plunge",
+                timerSettingMode: "Countdown",
+                latestSessionParams: LatestSessionParams(totalTimeS: 195, setTimeS: 150, tempF: 45.5)
+            )
         ]
         return manager
     }()
     return SelectSessionScreen(navigationManager: NavigationManager())
         .environmentObject(previewManager)
-} 
+}

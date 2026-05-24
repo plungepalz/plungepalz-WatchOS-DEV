@@ -118,18 +118,15 @@ struct GetReadyCountdownTimer: View {
     // MARK: - Navigation Logic
     private func navigateToCorrectScreen() {
         #if DEBUG
-        print("🎯 GetReadyCountdownTimer: Timer completed, routing based on activity type: \(sessionDataManager.activityType)")
+        print("🎯 GetReadyCountdownTimer: Timer completed, routing based on timer mode for: \(sessionDataManager.activityType)")
         #endif
-        
-        // Route based on activity type
-        if sessionDataManager.activityType == "Cold Plunge" {
-            // Cold Plunge goes to CountdownActivatedScreen
+
+        if sessionDataManager.isCurrentActivityCountdown {
             #if DEBUG
             print("➡️ Navigating to CountdownActivatedScreen")
             #endif
             navigationManager.goToScreen(.countdownActivated)
         } else {
-            // Sauna or Cold Shower goes to ActivityStartedScreen
             #if DEBUG
             print("➡️ Navigating to ActivityStartedScreen")
             #endif
@@ -147,8 +144,7 @@ struct GetReadyCountdownTimer: View {
         // Stop the UI timer
         stopTimer()
         
-        // Go back to home (since Sauna/Cold Shower skip SelectSession)
-        navigationManager.goToHome()
+        navigationManager.goToPreviousScreen()
     }
     
     private func handleTimerTick() {

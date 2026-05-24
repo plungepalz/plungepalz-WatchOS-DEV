@@ -474,10 +474,11 @@
 				DEVELOPMENT_TEAM = GWQ34U4XAK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = PlungePalz;
+				INFOPLIST_KEY_CFBundleDisplayName = PlungePalzDEV;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "PlungePalz needs access to read your heart rate during cold plunge sessions for accurate tracking and analytics.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PlungePalz needs to save your cold plunge sessions and heart rate data information to the Health app.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PlungePalz only records your location once at the start of your cold plunge.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PlungePalz only records your location once at the start of your cold plunge, sauna, or cold shower activity.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKBackgroundModes = "workout-processing";
 				INFOPLIST_KEY_WKWatchOnly = YES;
@@ -508,10 +509,11 @@
 				DEVELOPMENT_TEAM = GWQ34U4XAK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = PlungePalz;
+				INFOPLIST_KEY_CFBundleDisplayName = PlungePalzDEV;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "PlungePalz needs access to read your heart rate during cold plunge sessions for accurate tracking and analytics.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PlungePalz needs to save your cold plunge sessions and heart rate data information to the Health app.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PlungePalz only records your location once at the start of your cold plunge.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PlungePalz only records your location once at the start of your cold plunge, sauna, or cold shower activity.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKBackgroundModes = "workout-processing";
 				INFOPLIST_KEY_WKWatchOnly = YES;

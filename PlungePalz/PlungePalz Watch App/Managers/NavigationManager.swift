@@ -13,19 +13,25 @@ enum AppScreen: Int, CaseIterable {
     case home = 1
     case connectDevice = 2
     case notSubscribed = 3
-    case saunaOrColdShowerMessage = 4  // Info screen for Sauna/Cold Shower
-    case selectSession = 5
-    case setTimer = 6
-    case setTemperature = 7
-    case getReadyCountdownTimer = 8
-    case countdownActivated = 9        // For Cold Plunge
-    case activityStarted = 10          // NEW: For Sauna/Cold Shower (countup only)
-    case activityStoppedOrPaused = 11
-    case sessionDeleted = 12
-    case sessionRecap = 13
-    case pendingSaveSessions = 14
-    case savingOrDeletingPendingActivities = 15
-    
+    case selectSession = 4
+    case setTimer = 5
+    case setTemperature = 6
+    case getReadyCountdownTimer = 7
+    case countdownActivated = 8
+    case activityStarted = 9
+    case activityStoppedOrPaused = 10
+    case sessionDeleted = 11
+    case sessionRecap = 12
+    case pendingSaveSessions = 13
+    case savingOrDeletingPendingActivities = 14
+    // MARK: - Routine Screens
+    case routineView = 15
+    case routineGetReady = 16
+    case routineTransition = 17
+    case routineModality = 18
+    case routinePause = 19
+    case routineRecap = 20
+
     var title: String {
         switch self {
         case .home:
@@ -34,8 +40,6 @@ enum AppScreen: Int, CaseIterable {
             return "Connect Device"
         case .notSubscribed:
             return "Not Subscribed"
-        case .saunaOrColdShowerMessage:
-            return "Activity Info"
         case .selectSession:
             return "Select Session"
         case .setTimer:
@@ -58,6 +62,18 @@ enum AppScreen: Int, CaseIterable {
             return "Pending Save Sessions"
         case .savingOrDeletingPendingActivities:
             return "Saving or Deleting Activities"
+        case .routineView:
+            return "Routine View"
+        case .routineGetReady:
+            return "Routine Get Ready"
+        case .routineTransition:
+            return "Routine Transition"
+        case .routineModality:
+            return "Routine Modality"
+        case .routinePause:
+            return "Routine Pause"
+        case .routineRecap:
+            return "Routine Recap"
         }
     }
     
@@ -72,6 +88,12 @@ class NavigationManager: ObservableObject {
     @Published var previousScreen: AppScreen = .home
     @Published var activityMode: SavingOrDeletingPendingActivities.ActivityMode = .saving
     @Published var originalNavigationSource: CountdownActivatedScreen.NavigationSource = .setTemperature
+
+    // MARK: - Routine Pause Communication
+    /// "Modality" or "Transition" — set by ModalityScreen / TransitionScreen before navigating to PauseScreen
+    @Published var routinePauseSource: String = ""
+    /// "save" | "skip" | "" — set by PauseScreen; observed by ModalityScreen / TransitionScreen
+    @Published var routinePauseAction: String = ""
     
     // Navigation stack to track actual navigation history
     private var navigationStack: [AppScreen] = [.home]

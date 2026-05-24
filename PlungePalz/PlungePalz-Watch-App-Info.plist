@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key></key>
-	<string></string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PlungePalz only records your location once at the start of your cold plunge, sauna, or cold shower activity.</string>
 </dict>
 </plist>

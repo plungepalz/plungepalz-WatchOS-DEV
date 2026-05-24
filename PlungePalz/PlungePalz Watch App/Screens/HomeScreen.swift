@@ -2,11 +2,12 @@
 //  HomeScreen.swift
 //  PlungePalz Watch App
 //
-//  Updated to support multiple activity types
+//  Updated to support multiple activity types and GPS tracking
 //
 
 import SwiftUI
 import HealthKit
+import CoreLocation
 
 struct HomeScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
@@ -19,12 +20,20 @@ struct HomeScreen: View {
     // MARK: - Activity Selection State
     @State private var selectedActivityIndex: Int = 0
     
-    // Activity options
+    // Activity options — display name, icon, API activity_type key
     let activities = [
         ActivityOption(name: "Plunge", icon: "snowflake", type: "Cold Plunge"),
         ActivityOption(name: "Sauna", icon: "heater.vertical", type: "Sauna"),
-        ActivityOption(name: "Cold Shower", icon: "shower", type: "Cold Shower")
+        ActivityOption(name: "Steam Room", icon: "cloud.fog", type: "Steam Room"),
+        ActivityOption(name: "Cold Shower", icon: "shower", type: "Cold Shower"),
+        ActivityOption(name: "Hot Tub", icon: "water.waves", type: "Hot Tub")
     ]
+
+    private var visibleActivities: [ActivityOption] {
+        guard !sessionDataManager.activityTypeSettings.isEmpty else { return activities }
+        let availableTypes = Set(sessionDataManager.activityTypeSettings.map { $0.activityType })
+        return activities.filter { availableTypes.contains($0.type) }
+    }
     
     // Placeholder for connection status
     enum ConnectionStatus {
@@ -52,7 +61,7 @@ struct HomeScreen: View {
         var statusText: String {
             switch self {
             case .subscribed:
-                return "Subscribed"
+                return "Connected"
             case .connecting:
                 return "Connecting..."
             case .notSubscribed:
@@ -98,15 +107,47 @@ struct HomeScreen: View {
     @State private var connectionStatus: ConnectionStatus = .connecting
     @State private var isAPIBusy: Bool = false
     @StateObject private var apiManager = APIs.shared
+    
+    // Helper to check if we're offline (persisted in UserDefaults)
+    private var isOffline: Bool {
+        get {
+            return UserDefaults.standard.bool(forKey: "isOffline")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "isOffline")
+        }
+    }
+    
+    // MARK: - GPS Location State
+    enum GPSStatus {
+        case searching
+        case found
+        case notFound
+        case disabled  // When allowSmartwatchGPSlocator is false
+    }
+    
+    @State private var gpsStatus: GPSStatus = .searching
+    @StateObject private var locationManager = LocationManager()
 
     // MARK: - Connection Functions
     private func performConnection() {
         connectionStatus = .connecting
+        UserDefaults.standard.set(false, forKey: "isOffline") // Reset offline flag when attempting connection
         
-        sessionDataManager.fetchLastSessionData()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            updateConnectionStatusBasedOnSubscription()
+        sessionDataManager.fetchLastSessionData { success in
+            if success {
+                // API call succeeded - update status based on subscription
+                UserDefaults.standard.set(false, forKey: "isOffline")
+                self.updateConnectionStatusBasedOnSubscription()
+            } else {
+                // API call failed (offline/network error) - show No WiFi status
+                // Cached data has already been loaded by SessionDataManager
+                #if DEBUG
+                print("📡 HomeScreen: API call failed, showing No WiFi status (using cached data)")
+                #endif
+                UserDefaults.standard.set(true, forKey: "isOffline")
+                self.connectionStatus = .noWiFi
+            }
         }
     }
 
@@ -120,8 +161,73 @@ struct HomeScreen: View {
         
         if isUserSubscribed {
             connectionStatus = .subscribed
+            startGPSTracking()
         } else {
             connectionStatus = .notSubscribed
+        }
+    }
+    
+    // MARK: - Pending Activities Check
+    private func checkPendingActivities() {
+        let pendingRequests = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
+        let pendingCount = pendingRequests.count
+        
+        #if DEBUG
+        print("📦 HomeScreen: Checking pending activities - Count: \(pendingCount)")
+        print("📦 Previous screen: \(navigationManager.previousScreen.title)")
+        #endif
+        
+        if pendingCount > 0 {
+            // Check if we're coming from PendingSaveSessionsScreen, SavingOrDeletingPendingActivities, or NotSubscribed
+            // to avoid infinite navigation loop
+            let previousScreen = navigationManager.previousScreen
+            let isComingFromPendingScreens = previousScreen == .pendingSaveSessions || 
+                                            previousScreen == .savingOrDeletingPendingActivities ||
+                                            previousScreen == .notSubscribed
+            
+            if isComingFromPendingScreens {
+                #if DEBUG
+                print("📦 Pending activities found but user is coming from \(previousScreen.title) - Skipping navigation to avoid loop")
+                #endif
+                return
+            }
+            
+            #if DEBUG
+            print("📦 Pending activities found: \(pendingCount) session(s) waiting to be saved - Navigating to PendingSaveSessionsScreen")
+            #endif
+            // Navigate to PendingSaveSessionsScreen when pending activities are found
+            DispatchQueue.main.async {
+                self.navigationManager.goToScreen(.pendingSaveSessions)
+            }
+        }
+    }
+    
+    // MARK: - GPS Tracking Functions
+    private func startGPSTracking() {
+        // Check if GPS is allowed from API settings
+        guard sessionDataManager.allowSmartwatchGPSlocator else {
+            #if DEBUG
+            print("📍 GPS tracking disabled by user settings")
+            #endif
+            gpsStatus = .disabled
+            return
+        }
+        
+        #if DEBUG
+        print("📍 Starting GPS tracking with 15-second timeout")
+        #endif
+        
+        gpsStatus = .searching
+        locationManager.requestLocation()
+        
+        // Set 15-second timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+            if self.gpsStatus == .searching {
+                #if DEBUG
+                print("⏱️ GPS timeout reached - location not found")
+                #endif
+                self.gpsStatus = .notFound
+            }
         }
     }
 
@@ -150,6 +256,8 @@ struct HomeScreen: View {
             // Top Black Container
             ZStack {
                 Color.black
+                
+                // Connection Status (always centered in screen)
                 VStack(spacing: 4) {
                     if connectionStatus == .connecting {
                         if #available(watchOS 10.0, *) {
@@ -198,6 +306,39 @@ struct HomeScreen: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
+                
+                // GPS Icon (absolute positioned top-left, only visible when subscribed)
+                if connectionStatus == .subscribed {
+                    VStack {
+                        HStack {
+                            if gpsStatus == .searching {
+                                if #available(watchOS 10.0, *) {
+                                    Image(systemName: "location.slash")
+                                        .font(.system(size: connectionStatusIconSize * 0.7, weight: .bold))
+                                        .foregroundStyle(.yellow)
+                                        .symbolEffect(.bounce.up.byLayer, options: .repeating)
+                                } else {
+                                    Image(systemName: "location.slash")
+                                        .font(.system(size: connectionStatusIconSize * 0.7, weight: .bold))
+                                        .foregroundStyle(.yellow)
+                                }
+                            } else if gpsStatus == .found {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: connectionStatusIconSize * 0.7, weight: .bold))
+                                    .foregroundStyle(.green)
+                            } else {
+                                // notFound or disabled
+                                Image(systemName: "location.slash")
+                                    .font(.system(size: connectionStatusIconSize * 0.7, weight: .bold))
+                                    .foregroundStyle(.yellow)
+                            }
+                            Spacer()
+                        }
+                        .padding(.leading, 12)
+                        .padding(.top, 12)
+                        Spacer()
+                    }
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: 0))
             .frame(maxWidth: .infinity)
@@ -211,29 +352,40 @@ struct HomeScreen: View {
                     // Show scrollable activity list
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 8) {
-                            ForEach(0..<activities.count, id: \.self) { index in
+                            // MARK: Activity Pills
+                            ForEach(0..<visibleActivities.count, id: \.self) { index in
                                 ActivitySelectionRow(
-                                    activity: activities[index],
+                                    activity: visibleActivities[index],
                                     isSelected: selectedActivityIndex == index,
                                     connectionStatusIconSize: connectionStatusIconSize
                                 )
                                 .onTapGesture {
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         selectedActivityIndex = index
-                                        // Set the activity type in SessionDataManager
-                                        sessionDataManager.activityType = activities[index].type
-                                        
+                                        sessionDataManager.activityType = visibleActivities[index].type
+
                                         #if DEBUG
-                                        print("🎯 Activity selected: \(activities[index].name) (\(activities[index].type))")
+                                        print("🎯 Activity selected: \(visibleActivities[index].name) (\(visibleActivities[index].type))")
                                         #endif
-                                        
-                                        // Navigate based on activity type
-                                        if activities[index].type == "Cold Plunge" {
-                                            navigationManager.goToScreen(.selectSession)
-                                        } else {
-                                            // For Sauna or Cold Shower, show info message first
-                                            navigationManager.goToScreen(.saunaOrColdShowerMessage)
-                                        }
+
+                                        navigationManager.goToScreen(.selectSession)
+                                    }
+                                }
+                            }
+
+                            // MARK: Routine Pills (shown only when routines are available)
+                            if connectionStatus == .subscribed && !sessionDataManager.routineData.isEmpty {
+                                ForEach(sessionDataManager.routineData) { routine in
+                                    RoutineSelectionRow(
+                                        routine: routine,
+                                        connectionStatusIconSize: connectionStatusIconSize
+                                    )
+                                    .onTapGesture {
+                                        #if DEBUG
+                                        print("🔄 Routine selected: \(routine.nickname)")
+                                        #endif
+                                        sessionDataManager.activeRoutine = routine
+                                        navigationManager.goToScreen(.routineView)
                                     }
                                 }
                             }
@@ -313,24 +465,33 @@ struct HomeScreen: View {
         .edgesIgnoringSafeArea(.all)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
+            #if DEBUG
+            print("🏠 HomeScreen: onAppear - Performing connection check, fetchLastSessionData, and pending activities check")
+            #endif
+            
+            // Always check for pending activities first
+            checkPendingActivities()
+            
             // Check for stored userId in local memory
             let storedUserId = UserDefaults.standard.string(forKey: "userId")
             
+            // First, check if we're offline (persisted state)
+            let currentlyOffline = isOffline
+            
             if let userId = storedUserId, !userId.isEmpty {
-                // Check if we already have session data
-                if sessionDataManager.lastSessionData != nil {
-                    // We already have data, just update the status based on current subscription
+                // ALWAYS perform connection check and fetchLastSessionData, regardless of existing data
+                // This ensures we get fresh data and update connection status every time
+                if currentlyOffline {
                     #if DEBUG
-                    print("📊 HomeScreen: Already have session data, updating status")
+                    print("📊 HomeScreen: Offline detected, but still attempting connection to check status")
                     #endif
-                    updateConnectionStatusBasedOnSubscription()
-                } else {
-                    // No session data yet, perform full connection
-                    #if DEBUG
-                    print("✅ User ID found, starting connection process")
-                    #endif
-                    performConnection()
                 }
+                
+                // Always perform connection (which calls fetchLastSessionData)
+                #if DEBUG
+                print("✅ HomeScreen: Performing connection check and fetching session data")
+                #endif
+                performConnection()
             } else {
                 #if DEBUG
                 print("❌ No User ID found - user needs to pair device")
@@ -340,6 +501,20 @@ struct HomeScreen: View {
 
             sessionDataManager.resetSessionTracking()
             requestHealthKitPermissions()
+        }
+        .onChange(of: locationManager.location) { newLocation in
+            if let location = newLocation, gpsStatus == .searching {
+                #if DEBUG
+                print("📍 GPS location found: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                #endif
+                
+                // Store coordinates in SessionDataManager
+                sessionDataManager.sessionLatitude = location.coordinate.latitude
+                sessionDataManager.sessionLongitude = location.coordinate.longitude
+                
+                // Update status to found
+                gpsStatus = .found
+            }
         }
     }
     
@@ -399,6 +574,80 @@ struct ActivitySelectionRow: View {
                 .stroke(isSelected ? Color.white.opacity(0.5) : Color.white.opacity(0.2), lineWidth: 2)
         )
         .padding(.horizontal, 8)
+    }
+}
+
+// MARK: - Routine Selection Row
+
+struct RoutineSelectionRow: View {
+    let routine: RoutineModel
+    let connectionStatusIconSize: CGFloat
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: connectionStatusIconSize * 0.9, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: connectionStatusIconSize)
+
+            Text(routine.nickname)
+                .watchAdaptivePoppinsFont(style: .title, weight: .regular)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.black.opacity(0.2))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.4), lineWidth: 2)
+        )
+        .padding(.horizontal, 8)
+    }
+}
+
+// MARK: - Location Manager
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    @Published var location: CLLocation?
+    
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+    }
+    
+    func requestLocation() {
+        #if DEBUG
+        print("📍 LocationManager: Requesting location authorization and single location update")
+        #endif
+        
+        manager.requestWhenInUseAuthorization()
+        manager.requestLocation()
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        
+        #if DEBUG
+        print("📍 LocationManager: Location updated - Lat: \(location.coordinate.latitude), Lon: \(location.coordinate.longitude)")
+        #endif
+        
+        DispatchQueue.main.async {
+            self.location = location
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        #if DEBUG
+        print("❌ LocationManager: Failed to get location - \(error.localizedDescription)")
+        #endif
     }
 }
 
