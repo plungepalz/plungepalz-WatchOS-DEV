@@ -17,16 +17,13 @@ struct HomeScreen: View {
     // MARK: - HealthKit
     @StateObject private var healthKitManager = HealthKitManager.shared
     
-    // MARK: - Activity Selection State
-    @State private var selectedActivityIndex: Int = 0
-    
     // Activity options — display name, icon, API activity_type key
     let activities = [
-        ActivityOption(name: "Plunge", icon: "snowflake", type: "Cold Plunge"),
-        ActivityOption(name: "Sauna", icon: "heater.vertical", type: "Sauna"),
-        ActivityOption(name: "Steam Room", icon: "cloud.fog", type: "Steam Room"),
-        ActivityOption(name: "Cold Shower", icon: "shower", type: "Cold Shower"),
-        ActivityOption(name: "Hot Tub", icon: "water.waves", type: "Hot Tub")
+        ActivityOption(name: "Plunge", icon: "drop.degreesign", type: "Cold Plunge", iconColor: .white),
+        ActivityOption(name: "Sauna", icon: "heater.vertical", type: "Sauna", iconColor: .orange),
+        ActivityOption(name: "Steam Room", icon: "cloud.fog", type: "Steam Room", iconColor: .gray),
+        ActivityOption(name: "Cold Shower", icon: "shower", type: "Cold Shower", iconColor: .blue),
+        ActivityOption(name: "Hot Tub", icon: "water.waves", type: "Hot Tub", iconColor: .cyan)
     ]
 
     private var visibleActivities: [ActivityOption] {
@@ -214,14 +211,14 @@ struct HomeScreen: View {
         }
         
         #if DEBUG
-        print("📍 Starting GPS tracking with 15-second timeout")
+        print("📍 Starting GPS tracking with 60-second timeout")
         #endif
         
         gpsStatus = .searching
         locationManager.requestLocation()
         
-        // Set 15-second timeout
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+        // Set 60-second timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60.0) {
             if self.gpsStatus == .searching {
                 #if DEBUG
                 print("⏱️ GPS timeout reached - location not found")
@@ -233,13 +230,10 @@ struct HomeScreen: View {
 
     var body: some View {
         let screenSize = screenManager.currentScreenSize
-        let screenWidth = WKInterfaceDevice.current().screenBounds.width
         let screenHeight = WKInterfaceDevice.current().screenBounds.height
 
         // ====== Define all adaptive UI constants for HomeScreen ======
         let topContainerHeightRatio = WatchGlobalUIConfig.HomeScreen.topContainerHeightRatio(for: screenSize)
-        let middleBlueContainerHeightRatio = WatchGlobalUIConfig.HomeScreen.middleBlueContainerHeightRatio(for: screenSize)
-        let bottomContainerHeightRatio = WatchGlobalUIConfig.HomeScreen.bottomContainerHeightRatio(for: screenSize)
         let connectionStatusIconSize = WatchGlobalUIConfig.HomeScreen.connectionStatusIconSize(for: screenSize)
         let chevronPadding = WatchGlobalUIConfig.HomeScreen.chevronPadding(for: screenSize)
         let plungeButtonCornerRadius = WatchGlobalUIConfig.HomeScreen.plungeButtonCornerRadius(for: screenSize)
@@ -247,9 +241,6 @@ struct HomeScreen: View {
         let plungeButtonVerticalPadding = WatchGlobalUIConfig.HomeScreen.plungeButtonVerticalPadding(for: screenSize)
         let bottomLogoSpacing = WatchGlobalUIConfig.HomeScreen.bottomLogoSpacing(for: screenSize)
         let middleContainerPaddingTrailing = WatchGlobalUIConfig.HomeScreen.middleContainerPaddingTrailing(for: screenSize)
-        let bottomContainerLogoSize = WatchGlobalUIConfig.HomeScreen.bottomContainerLogoSize(for: screenSize)
-        let bottomContainerLogoSpacing = WatchGlobalUIConfig.HomeScreen.bottomContainerLogoSpacing(for: screenSize)
-        let bottomContainerAssetPadding = WatchGlobalUIConfig.HomeScreen.bottomContainerAssetPadding(for: screenSize)
         // ====== End of adaptive UI constants for HomeScreen ======
 
         VStack(spacing: 0) {
@@ -344,7 +335,7 @@ struct HomeScreen: View {
             .frame(maxWidth: .infinity)
             .frame(height: screenHeight * topContainerHeightRatio)
             
-            // Middle Blue Container - Activity Selection or Navigation
+            // Middle Blue Container - Flexible layout greedy stack pushing bottom down
             ZStack {
                 Color(red: 0/255, green: 116/255, blue: 255/255)
                 
@@ -356,20 +347,16 @@ struct HomeScreen: View {
                             ForEach(0..<visibleActivities.count, id: \.self) { index in
                                 ActivitySelectionRow(
                                     activity: visibleActivities[index],
-                                    isSelected: selectedActivityIndex == index,
                                     connectionStatusIconSize: connectionStatusIconSize
                                 )
                                 .onTapGesture {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        selectedActivityIndex = index
-                                        sessionDataManager.activityType = visibleActivities[index].type
+                                    sessionDataManager.activityType = visibleActivities[index].type
 
-                                        #if DEBUG
-                                        print("🎯 Activity selected: \(visibleActivities[index].name) (\(visibleActivities[index].type))")
-                                        #endif
+                                    #if DEBUG
+                                    print("🎯 Activity selected: \(visibleActivities[index].name) (\(visibleActivities[index].type))")
+                                    #endif
 
-                                        navigationManager.goToScreen(.selectSession)
-                                    }
+                                    navigationManager.goToScreen(.selectSession)
                                 }
                             }
 
@@ -440,27 +427,37 @@ struct HomeScreen: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 0))
-            .frame(maxWidth: .infinity)
-            .frame(height: screenHeight * middleBlueContainerHeightRatio)
+            .frame(maxWidth: .infinity, maxHeight: .infinity) // Dynamic sizing taking leftover room
             .padding(.vertical, 2)
                         
             // Bottom Black Container (adaptive logo and text)
-            HStack(alignment: .center, spacing: bottomContainerLogoSpacing) {
-                Image("HomeScreenIconImage")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: bottomContainerLogoSize, height: bottomContainerLogoSize)
-                Text("PlungePalz")
-                    .watchAdaptivePoppinsFont(style: .body, weight: .bold)
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+            VStack(spacing: 4) {
+                // Elegant, thin structural separator accent
+                Rectangle()
+                    .fill(Color.white.opacity(0.15))
+                    .frame(height: 1)
+                    .padding(.horizontal, 8)
+                
+                HStack(spacing: 8) {
+                    // App Branding Icon
+                    Image("HomeScreenIconImage")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .cornerRadius(5)
+                    
+                    // Brand Text Layout
+                    Text("PlungePalz")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 0)
+                .padding(.bottom, 6) // Smooth clearance padding matching watch casing radii
             }
-            .padding(.bottom, bottomContainerAssetPadding)
-            .padding(.top, bottomLogoSpacing)
             .frame(maxWidth: .infinity)
-            .frame(height: screenHeight * bottomContainerHeightRatio)
             .background(Color.black)
+            .fixedSize(horizontal: false, vertical: true) // Prevents vertical bloating
         }
         .edgesIgnoringSafeArea(.all)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
@@ -479,8 +476,6 @@ struct HomeScreen: View {
             let currentlyOffline = isOffline
             
             if let userId = storedUserId, !userId.isEmpty {
-                // ALWAYS perform connection check and fetchLastSessionData, regardless of existing data
-                // This ensures we get fresh data and update connection status every time
                 if currentlyOffline {
                     #if DEBUG
                     print("📊 HomeScreen: Offline detected, but still attempting connection to check status")
@@ -539,19 +534,19 @@ struct ActivityOption {
     let name: String
     let icon: String
     let type: String
+    let iconColor: Color
 }
 
 // MARK: - Activity Selection Row
 struct ActivitySelectionRow: View {
     let activity: ActivityOption
-    let isSelected: Bool
     let connectionStatusIconSize: CGFloat
     
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: activity.icon)
                 .font(.system(size: connectionStatusIconSize * 0.9, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(activity.iconColor)
                 .frame(width: connectionStatusIconSize)
             
             Text(activity.name)
@@ -567,25 +562,24 @@ struct ActivitySelectionRow: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(isSelected ? Color.black.opacity(0.3) : Color.clear)
+                .fill(Color(hex: "#001F3F"))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isSelected ? Color.white.opacity(0.5) : Color.white.opacity(0.2), lineWidth: 2)
+                .stroke(Color.white.opacity(0.2), lineWidth: 2)
         )
         .padding(.horizontal, 8)
     }
 }
 
 // MARK: - Routine Selection Row
-
 struct RoutineSelectionRow: View {
     let routine: RoutineModel
     let connectionStatusIconSize: CGFloat
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "arrow.triangle.2.circlepath")
+            Image(systemName: "point.topright.arrow.triangle.backward.to.point.bottomleft.scurvepath")
                 .font(.system(size: connectionStatusIconSize * 0.9, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: connectionStatusIconSize)

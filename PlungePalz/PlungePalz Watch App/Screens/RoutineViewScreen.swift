@@ -12,8 +12,6 @@ struct RoutineViewScreen: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @StateObject private var screenManager = WatchScreenManager()
 
-    @State private var scrollOffset: Int = 0
-
     // MARK: - Helpers
 
     private var routine: RoutineModel? { sessionDataManager.activeRoutine }
@@ -45,83 +43,65 @@ struct RoutineViewScreen: View {
     // MARK: - Body
 
     var body: some View {
-        let screenSize = screenManager.currentScreenSize
-
         GeometryReader { geo in
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 2) {
-                    Text("Routine Steps")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white)
-                    Text("Press Start to Begin")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundStyle(Color(hex: "#00A8FF"))
-                }
-                .padding(.top, 20)
-                .padding(.bottom, 6)
-
-                // Step Cards
                 if let routine = routine {
-                    let steps = routine.routineList
-                    let visibleCount = 3
-                    let maxOffset = max(0, steps.count - visibleCount)
-                    let safeOffset = min(scrollOffset, maxOffset)
-                    let visibleSteps = Array(steps[safeOffset..<min(safeOffset + visibleCount, steps.count)])
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(spacing: 12) {
+                            // Dynamic Sub-Header Info Area
+                            VStack(spacing: 3) {
+                                Text("Routine Steps")
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                                
+                                Text("\(routine.routineList.count) Steps • Total flow")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
 
-                    VStack(spacing: 4) {
-                        ForEach(Array(visibleSteps.enumerated()), id: \.element.id) { enumIdx, step in
-                            let isTop = enumIdx == 0
-                            let globalIdx = safeOffset + enumIdx
+                            // Continuous list of cards
+                            LazyVStack(spacing: 6) {
+                                ForEach(Array(routine.routineList.enumerated()), id: \.element.id) { index, step in
+                                    NewStepCard(
+                                        step: step,
+                                        stepLabel: stepLabel(step),
+                                        duration: formatDuration(step.sLength),
+                                        tempString: tempString(for: step),
+                                        isFirst: index == 0,
+                                        isLast: index == routine.routineList.count - 1
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 4)
 
-                            StepCard(
-                                step: step,
-                                stepLabel: stepLabel(step),
-                                duration: formatDuration(step.sLength),
-                                tempString: tempString(for: step),
-                                isHighlighted: isTop,
-                                isFirst: globalIdx == 0,
-                                isLast: globalIdx == steps.count - 1
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 6)
-
-                    Spacer(minLength: 4)
-
-                    // Navigation + Start
-                    HStack(spacing: 8) {
-                        Button(action: { if scrollOffset > 0 { scrollOffset -= 1 } }) {
-                            Image(systemName: "chevron.up")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(scrollOffset > 0 ? .white : .gray)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(scrollOffset == 0)
-
-                        Button(action: startRoutine) {
-                            Text("START")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
+                            // Modern, sweeping CTA at the base of the list
+                            Button(action: startRoutine) {
+                                HStack {
+                                    Spacer()
+                                    Text("START ROUTINE")
+                                        .font(.system(size: 14, weight: .black, design: .rounded))
+                                        .foregroundStyle(.black)
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(.black)
+                                    Spacer()
+                                }
+                                .frame(height: 40)
                                 .background(Color(hex: "#00A8FF"))
                                 .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 6)
+                            .padding(.top, 10)
+                            .padding(.bottom, 12)
                         }
-                        .buttonStyle(.plain)
-
-                        Button(action: { if scrollOffset < maxOffset { scrollOffset += 1 } }) {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(scrollOffset < maxOffset ? .white : .gray)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(scrollOffset >= maxOffset)
                     }
-                    .padding(.bottom, 8)
                 } else {
                     Spacer()
                     Text("No routine selected")
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.gray)
                     Spacer()
                 }
@@ -136,77 +116,88 @@ struct RoutineViewScreen: View {
     // MARK: - Actions
 
     private func startRoutine() {
-        let selectedRoutine = routine  // capture before resetRoutineState clears it
+        let selectedRoutine = routine
         sessionDataManager.resetRoutineState()
         sessionDataManager.activeRoutine = selectedRoutine
         navigationManager.goToScreen(.routineGetReady)
     }
 }
 
-// MARK: - Step Card
+// MARK: - Modern Step Card View
 
-private struct StepCard: View {
+private struct NewStepCard: View {
     let step: RoutineStepModel
     let stepLabel: String
     let duration: String
     let tempString: String?
-    let isHighlighted: Bool
     let isFirst: Bool
     let isLast: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Step number badge
+        HStack(alignment: .center, spacing: 10) {
+            // Step marker capsule
             Text("\(step.step)")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(isHighlighted ? .black : Color(hex: "#00A8FF"))
-                .frame(width: 20)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 16)
+                .background(Color.white.opacity(0.12))
+                .clipShape(Capsule())
 
-            // Icon
+            // Contextual Modality/Transition Icon
             Image(systemName: step.type == "Modality" ? activityIcon : "arrow.right.circle")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(isHighlighted ? .black : .white)
-                .frame(width: 16)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(step.type == "Modality" ? Color(hex: "#00A8FF") : .secondary)
+                .frame(width: 18)
 
-            // Label
-            Text(stepLabel)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(isHighlighted ? .black : .white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
-            Spacer()
-
-            // Duration + temp
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(duration)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(isHighlighted ? .black : Color(hex: "#00A8FF"))
-                if let t = tempString {
-                    Text(t)
-                        .font(.system(size: 9))
-                        .foregroundStyle(isHighlighted ? Color.black.opacity(0.7) : .gray)
+            // Content Stack (Label + Parameters underneath)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(stepLabel)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                
+                // Stacked Row metrics underneath title
+                HStack(spacing: 6) {
+                    Text(duration)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    
+                    if let t = tempString {
+                        // Small dot separator to cleanly stitch text components
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary.opacity(0.5))
+                        
+                        Text(t)
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color(hex: "#00A8FF"))
+                    }
                 }
             }
+            
+            Spacer()
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(isHighlighted ? Color(hex: "#00A8FF") : Color(red: 34/255, green: 34/255, blue: 34/255))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private var activityIcon: String {
-        switch step.activityType?.lowercased() ?? "" {
-        case let s where s.contains("sauna"):   return "heater.vertical"
-        case let s where s.contains("plunge"):  return "snowflake"
-        case let s where s.contains("shower"):  return "shower"
-        case let s where s.contains("tub"):     return "bathtub"
-        default:                                return "bolt.heart"
+        switch step.activityType ?? "" {
+        case "Cold Plunge":   return "drop.degreesign"
+        case "Sauna":        return "heater.vertical"
+        case "Steam Room":   return "cloud.fog"
+        case "Cold Shower":  return "shower"
+        case "Hot Tub":      return "water.waves"
+        default:
+            let lowerType = (step.activityType ?? "").lowercased()
+            if lowerType.contains("plunge") { return "drop.degreesign" }
+            if lowerType.contains("sauna") { return "heater.vertical" }
+            if lowerType.contains("steam") { return "cloud.fog" }
+            if lowerType.contains("shower") { return "shower" }
+            if lowerType.contains("tub") { return "water.waves" }
+            return "bolt.heart"
         }
     }
-}
-
-#Preview {
-    RoutineViewScreen(navigationManager: NavigationManager())
-        .environmentObject(SessionDataManager())
 }

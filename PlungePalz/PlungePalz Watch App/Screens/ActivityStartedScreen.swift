@@ -56,7 +56,7 @@ struct ActivityStartedScreen: View {
         case "Hot Tub":
             return "water.waves"
         default:
-            return "snowflake"
+            return "drop.degreesign"
         }
     }
 

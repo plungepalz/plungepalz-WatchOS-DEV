@@ -295,7 +295,7 @@ struct RoutineRecapScreen: View {
     private func activityIcon(for type: String?) -> String {
         switch type?.lowercased() ?? "" {
         case let s where s.contains("sauna"):   return "heater.vertical"
-        case let s where s.contains("plunge"):  return "snowflake"
+        case let s where s.contains("plunge"):  return "drop.degreesign"
         case let s where s.contains("shower"):  return "shower"
         case let s where s.contains("tub"):     return "bathtub"
         default:                                return "bolt.heart"

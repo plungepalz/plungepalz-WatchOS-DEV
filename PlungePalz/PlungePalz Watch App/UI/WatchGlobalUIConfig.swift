@@ -27,9 +27,9 @@ struct WatchGlobalUIConfig {
         }
         static func bottomContainerHeightRatio(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 0.3
-            case .regular: return 0.3
-            case .ultra: return 0.3
+            case .small: return 0.2
+            case .regular: return 0.2
+            case .ultra: return 0.2
             }
         }
 
@@ -94,9 +94,9 @@ struct WatchGlobalUIConfig {
 
         static func bottomContainerLogoSize(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 36
-            case .regular: return 36
-            case .ultra: return 46
+            case .small: return 24
+            case .regular: return 28
+            case .ultra: return 32
             }
         }
 
@@ -112,7 +112,7 @@ struct WatchGlobalUIConfig {
             switch size {
             case .small: return 0
             case .regular: return 8
-            case .ultra: return 12
+            case .ultra: return 0
             }
         }
     }
