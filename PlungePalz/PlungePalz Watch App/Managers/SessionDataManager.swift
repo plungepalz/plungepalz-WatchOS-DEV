@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import WatchKit
 
 class SessionDataManager: ObservableObject {
     @Published var HRArray: [Int] = []
@@ -46,6 +47,23 @@ class SessionDataManager: ObservableObject {
     @Published var currentRoutineStepIndex: Int = 0
     @Published var routineStepResults: [RoutineStepResult] = []
     @Published var routineStepStats: [Int: RoutineStepStats] = [:]
+
+    // MARK: - Routine Step Execution Snapshots (survive pause navigation)
+    @Published var routineTransitionEndDate: Date?
+    @Published var routineTransitionTotalSeconds: Int = 0
+    @Published var routineTransitionStepIndex: Int = -1
+
+    @Published var routineModalityHasSnapshot: Bool = false
+    @Published var routineModalityStepIndex: Int = -1
+    @Published var routineModalityCountdownEndDate: Date?
+    @Published var routineModalityEpicStartDate: Date?
+    @Published var routineModalityInitialCountdown: Int = 0
+    @Published var routineModalityIsEpicMode: Bool = false
+    @Published var routineModalityHRArray: [Int] = []
+    @Published var routineModalityShowFlagBounce: [Bool] = [false, false, false, false, false]
+    @Published var routineModalitySubPageIndex: Int = 0
+    @Published var routineModalityDidAutoSave: Bool = false
+    @Published var routineModalitySessionStartDate: Date?
 
     // MARK: - Activity Type Settings Helpers
 
@@ -124,6 +142,228 @@ class SessionDataManager: ObservableObject {
         currentRoutineStepIndex = 0
         routineStepResults = []
         routineStepStats = [:]
+        clearRoutineExecutionSnapshots()
+    }
+
+    func clearRoutineExecutionSnapshots() {
+        routineTransitionEndDate = nil
+        routineTransitionTotalSeconds = 0
+        routineTransitionStepIndex = -1
+        clearRoutineModalitySnapshot()
+    }
+
+    func clearRoutineModalitySnapshot() {
+        routineModalityHasSnapshot = false
+        routineModalityStepIndex = -1
+        routineModalityCountdownEndDate = nil
+        routineModalityEpicStartDate = nil
+        routineModalityInitialCountdown = 0
+        routineModalityIsEpicMode = false
+        routineModalityHRArray = []
+        routineModalityShowFlagBounce = [false, false, false, false, false]
+        routineModalitySubPageIndex = 0
+        routineModalityDidAutoSave = false
+        routineModalitySessionStartDate = nil
+    }
+
+    var hasTransitionSnapshotForCurrentStep: Bool {
+        routineTransitionStepIndex == currentRoutineStepIndex && routineTransitionEndDate != nil
+    }
+
+    var hasModalitySnapshotForCurrentStep: Bool {
+        routineModalityHasSnapshot && routineModalityStepIndex == currentRoutineStepIndex
+    }
+
+    var modalityAccumulatedSessionTime: Int {
+        guard let start = routineModalitySessionStartDate else { return accumulatedSessionTime }
+        return max(0, Int(Date().timeIntervalSince(start)))
+    }
+
+    var modalityEpicElapsedSeconds: Int {
+        guard routineModalityIsEpicMode, let start = routineModalityEpicStartDate else { return 0 }
+        return max(0, Int(Date().timeIntervalSince(start)))
+    }
+
+    var modalityCountdownRemainingSeconds: Double {
+        guard !routineModalityIsEpicMode, let endDate = routineModalityCountdownEndDate else { return 0 }
+        return max(0, endDate.timeIntervalSinceNow)
+    }
+
+    func beginTransitionStep(totalSeconds: Int) {
+        routineTransitionStepIndex = currentRoutineStepIndex
+        routineTransitionTotalSeconds = totalSeconds
+        routineTransitionEndDate = Date().addingTimeInterval(TimeInterval(totalSeconds))
+    }
+
+    func beginModalityStep(countdownSeconds: Int) {
+        routineModalityHasSnapshot = true
+        routineModalityStepIndex = currentRoutineStepIndex
+        routineModalityInitialCountdown = countdownSeconds
+        routineModalityCountdownEndDate = Date().addingTimeInterval(TimeInterval(countdownSeconds))
+        routineModalityEpicStartDate = nil
+        routineModalityIsEpicMode = false
+        routineModalityHRArray = []
+        routineModalityShowFlagBounce = [false, false, false, false, false]
+        routineModalitySubPageIndex = 0
+        routineModalityDidAutoSave = false
+        routineModalitySessionStartDate = Date()
+    }
+
+    func enterModalityEpicMode() {
+        routineModalityIsEpicMode = true
+        routineModalityEpicStartDate = Date()
+        routineModalityCountdownEndDate = nil
+    }
+
+    func skipCurrentTransitionStep(navigationManager: NavigationManager) {
+        routineTransitionEndDate = nil
+        routineTransitionStepIndex = -1
+        addRoutineStepResult(status: "Skipped")
+        if isLastRoutineStep {
+            navigationManager.goToScreen(.routineRecap)
+        } else {
+            currentRoutineStepIndex += 1
+            navigationManager.goToScreen(.routineGetReady)
+        }
+    }
+
+    func skipCurrentModalityStep(workoutManager: WorkoutManager, navigationManager: NavigationManager) {
+        clearRoutineModalitySnapshot()
+        workoutManager.discardWorkout()
+        addRoutineStepResult(status: "Skipped")
+        if isLastRoutineStep {
+            navigationManager.goToScreen(.routineRecap)
+        } else {
+            currentRoutineStepIndex += 1
+            navigationManager.goToScreen(.routineGetReady)
+        }
+    }
+
+    func updateRoutineStepResultStatus(step: Int, status: String) {
+        guard let index = routineStepResults.firstIndex(where: { $0.step == step }) else { return }
+        routineStepResults[index].status = status
+    }
+
+    func performOptimisticModalitySave(
+        workoutManager: WorkoutManager,
+        navigationManager: NavigationManager
+    ) {
+        guard let step = currentRoutineStep, let routine = activeRoutine else { return }
+
+        let hrSamples = routineModalityHRArray
+        let totalTime = modalityAccumulatedSessionTime
+        let epicSecs = routineModalityIsEpicMode ? modalityEpicElapsedSeconds : 0
+        let stepNumber = step.step
+
+        accumulatedSessionTime = totalTime
+        storeStepStats(hrArray: hrSamples)
+        addRoutineStepResult(status: "Pending")
+
+        workoutManager.completelyEndSession()
+
+        postRoutineModalityStep(
+            step: step,
+            routine: routine,
+            hrArray: hrSamples,
+            totalTime: totalTime,
+            epicSecs: epicSecs
+        ) { [weak self] success in
+            self?.updateRoutineStepResultStatus(step: stepNumber, status: success ? "Saved" : "Pending")
+        }
+
+        clearRoutineModalitySnapshot()
+
+        if isLastRoutineStep {
+            navigationManager.goToScreen(.routineRecap)
+        } else {
+            currentRoutineStepIndex += 1
+            resetSessionTracking()
+            navigationManager.goToScreen(.routineGetReady)
+        }
+    }
+
+    func postRoutineModalityStep(
+        step: RoutineStepModel,
+        routine: RoutineModel,
+        hrArray: [Int],
+        totalTime: Int,
+        epicSecs: Int,
+        completion: @escaping (Bool) -> Void
+    ) {
+        let userId = UserDefaults.standard.string(forKey: "userId") ?? "unknown"
+        let d_id = WKInterfaceDevice.current().name
+        let d_mv = WKInterfaceDevice.current().localizedModel
+        let d_fv = "WatchOS \(WKInterfaceDevice.current().systemVersion)"
+        let d_i = WKInterfaceDevice.current().identifierForVendor?.uuidString ?? "unknown"
+        let tempF = step.tempF ?? 0.0
+        let latitude = sessionLatitude
+        let longitude = sessionLongitude
+        let hasGps = (latitude != nil && longitude != nil)
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd-yyyy HH:mm:ss"
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        let timestampUTC = formatter.string(from: Date())
+        formatter.timeZone = TimeZone.current
+        let localTime = formatter.string(from: Date())
+
+        let payload: [String: Any] = [
+            "d_id": d_id,
+            "d_fv": d_fv,
+            "d_mv": d_mv,
+            "d_i": d_i,
+            "user_id": userId,
+            "original_set_time": step.sLength,
+            "total_time": totalTime,
+            "epic_time": epicSecs,
+            "temp_f": tempF,
+            "hr_array": hrArray,
+            "timestamp_utc": timestampUTC,
+            "localTime": localTime,
+            "sessionLatitude": latitude ?? "",
+            "sessionLongitude": longitude ?? "",
+            "hasGpsData": hasGps,
+            "activityType": step.activityType ?? "Activity",
+            "routine_id": routine.routineId,
+            "routine_line_id": step.routineLineId,
+            "step_number": step.step
+        ]
+
+        saveRoutinePendingRequest(payload: payload, timestampUTC: timestampUTC)
+
+        guard let request = apiManager.createRequest(
+            url: apiManager.saveSessionEndpoint,
+            method: "POST",
+            body: payload
+        ) else {
+            completion(false)
+            return
+        }
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                let result = self.apiManager.handleAPIResponse(response as? HTTPURLResponse, data: data, error: error)
+                if result.success {
+                    self.removeRoutinePendingRequest(timestampUTC: timestampUTC)
+                }
+                completion(result.success)
+            }
+        }.resume()
+    }
+
+    private func saveRoutinePendingRequest(payload: [String: Any], timestampUTC: String) {
+        var pending = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
+        let alreadyExists = pending.contains { ($0["timestamp_utc"] as? String) == timestampUTC }
+        if !alreadyExists {
+            pending.insert(payload, at: 0)
+            UserDefaults.standard.set(pending, forKey: "pending_requests")
+        }
+    }
+
+    private func removeRoutinePendingRequest(timestampUTC: String) {
+        var pending = UserDefaults.standard.array(forKey: "pending_requests") as? [[String: Any]] ?? []
+        pending.removeAll { ($0["timestamp_utc"] as? String) == timestampUTC }
+        UserDefaults.standard.set(pending, forKey: "pending_requests")
     }
 
     func storeStepStats(hrArray: [Int]) {

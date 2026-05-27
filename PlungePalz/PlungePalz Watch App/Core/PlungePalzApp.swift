@@ -13,6 +13,12 @@ struct PlungePalzApp: App {
     @StateObject var sessionDataManager = SessionDataManager()
     @StateObject var backgroundTimerManager = BackgroundTimerManager.shared
     @StateObject var workoutManager = WorkoutManager()
+
+    init() {
+        #if DEBUG
+        WatchScreenManager.logDetectedScreenSize()
+        #endif
+    }
     
     var body: some Scene {
         WindowGroup {

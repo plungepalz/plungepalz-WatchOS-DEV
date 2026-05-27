@@ -57,11 +57,14 @@ extension WatchUIConfig {
 }
 
 // MARK: - Updated View Modifiers
-extension View {
-    func watchAdaptivePoppinsFont(style: WatchFontStyle, weight: Font.Weight = .regular) -> some View {
-        @Environment(\.watchScreenSize) var screenSize
+
+private struct WatchAdaptivePoppinsFontModifier: ViewModifier {
+    @Environment(\.watchScreenSize) private var screenSize
+    let style: WatchFontStyle
+    let weight: Font.Weight
+
+    func body(content: Content) -> some View {
         let config = WatchUIConfig(for: screenSize)
-        
         let fontSize: CGFloat
         switch style {
         case .title:
@@ -71,7 +74,12 @@ extension View {
         case .caption:
             fontSize = config.captionFontSize
         }
-        
-        return self.font(FontManager.font(size: fontSize, weight: weight))
+        return content.font(FontManager.font(size: fontSize, weight: weight))
+    }
+}
+
+extension View {
+    func watchAdaptivePoppinsFont(style: WatchFontStyle, weight: Font.Weight = .regular) -> some View {
+        modifier(WatchAdaptivePoppinsFontModifier(style: style, weight: weight))
     }
 } 

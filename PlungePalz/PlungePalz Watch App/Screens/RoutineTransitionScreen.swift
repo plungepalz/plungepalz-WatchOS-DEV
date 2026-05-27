@@ -6,16 +6,15 @@
 //
 
 import SwiftUI
+import Combine
 
 struct RoutineTransitionScreen: View {
     @ObservedObject var navigationManager: NavigationManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @StateObject private var screenManager = WatchScreenManager()
 
-    @State private var remainingSeconds: Int = 60
-    @State private var totalSeconds: Int = 60
     @State private var isPaused: Bool = false
-    @State private var timer: Timer? = nil
+    @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
     @State private var didComplete: Bool = false
 
     private let accentBlue = Color(hex: "#00A8FF")
@@ -34,15 +33,26 @@ struct RoutineTransitionScreen: View {
 
     private var isRoutineComplete: Bool { nextStep == nil }
 
+    private var remainingSeconds: Double {
+        guard let endDate = sessionDataManager.routineTransitionEndDate else { return 0 }
+        return max(0, endDate.timeIntervalSinceNow)
+    }
+
+    private var totalSeconds: Int {
+        sessionDataManager.routineTransitionTotalSeconds
+    }
+
     private var timeString: String {
-        let m = remainingSeconds / 60
-        let s = remainingSeconds % 60
+        let displaySeconds = Int(ceil(remainingSeconds))
+        let m = displaySeconds / 60
+        let s = displaySeconds % 60
         return String(format: "%d:%02d", m, s)
     }
 
     private var progress: Double {
         guard totalSeconds > 0 else { return 0 }
-        return Double(totalSeconds - remainingSeconds) / Double(totalSeconds)
+        let elapsed = Double(totalSeconds) - remainingSeconds
+        return min(1, max(0, elapsed / Double(totalSeconds)))
     }
 
     // MARK: - Body
@@ -57,40 +67,39 @@ struct RoutineTransitionScreen: View {
                 Color.black.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    Text(currentStep?.stepNickname ?? "Transition")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(accentBlue)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, stopIconSize + stopIconTopCornerPadding - 4)
-                        .padding(.horizontal, 12)
+                    VStack(spacing: 2) {
+                        Text(currentStep?.stepNickname ?? "Transition")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(accentBlue)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 10)
+                    .padding(.horizontal, 36)
+                    .frame(maxWidth: .infinity)
 
                     Text(timeString)
                         .font(.system(size: 38, weight: .bold, design: .monospaced))
                         .foregroundStyle(.white)
                         .monospacedDigit()
-                        .padding(.top, 6)
-
-                    progressBar(width: geo.size.width * 0.88)
-                        .padding(.top, 8)
+                        .padding(.top, 4)
 
                     nextUpSection
-                        .padding(.top, 10)
+                        .padding(.top, 8)
                         .padding(.horizontal, 10)
 
                     Spacer(minLength: 0)
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
 
-                // Stop button overlay in top-left corner
                 VStack {
                     HStack {
                         Button(action: handlePauseButton) {
                             Image(systemName: "stop.circle.fill")
                                 .font(.system(size: stopIconSize, weight: .medium))
                                 .foregroundStyle(.red)
+                                .background(Color.black.clipShape(Circle()))
                         }
                         .buttonStyle(.plain)
                         .padding(.top, stopIconTopCornerPadding)
@@ -100,52 +109,35 @@ struct RoutineTransitionScreen: View {
                     }
                     Spacer()
                 }
+                .ignoresSafeArea()
             }
+        }
+        .onReceive(timer) { _ in
+            handleTick()
         }
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
-            if let step = currentStep {
-                remainingSeconds = step.sLength
-                totalSeconds = step.sLength
+            if sessionDataManager.hasTransitionSnapshotForCurrentStep {
+                didComplete = false
+                isPaused = false
+                startTimer()
+            } else if let step = currentStep {
+                didComplete = false
+                sessionDataManager.beginTransitionStep(totalSeconds: step.sLength)
+                startTimer()
             }
-            didComplete = false
-            startTimer()
         }
         .onDisappear {
             stopTimer()
         }
-        .onChange(of: navigationManager.routinePauseAction) { action in
-            if action == "skip" {
-                navigationManager.routinePauseAction = ""
-                skipAndAdvance()
-            } else if action == "" {
-                isPaused = false
-                startTimer()
-            }
-        }
-    }
-
-    // MARK: - Progress Bar
-
-    private func progressBar(width: CGFloat) -> some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(progressGray)
-                .frame(width: width, height: 8)
-            RoundedRectangle(cornerRadius: 4)
-                .fill(accentBlue)
-                .frame(width: width * progress, height: 8)
-                .animation(.linear(duration: 0.35), value: progress)
-        }
-        .frame(width: width, height: 8)
     }
 
     // MARK: - Next Up
 
     private var nextUpSection: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 4) {
             Text("NEXT UP")
-                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(.gray)
                 .tracking(0.6)
 
@@ -160,7 +152,7 @@ struct RoutineTransitionScreen: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 8)
+                .padding(.vertical, 6)
                 .background(Color.white.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             } else if let step = nextStep {
@@ -170,22 +162,38 @@ struct RoutineTransitionScreen: View {
     }
 
     private func nextStepRow(for step: RoutineStepModel) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: stepIcon(for: step))
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(stepIconColor(for: step))
-                .frame(width: 16)
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: stepIcon(for: step))
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(stepIconColor(for: step))
+                    .frame(width: 16, alignment: .center)
 
-            Text(nextStepDetailText(for: step))
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .multilineTextAlignment(.leading)
+                Text(stepLabel(for: step))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
+                Spacer()
+            }
+
+            HStack {
+                Text(formatDuration(step.sLength))
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                if let temp = tempString(for: step) {
+                    Text(temp)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(ActivityTypes.temperatureTextColor(for: step.activityType))
+                }
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
@@ -221,41 +229,23 @@ struct RoutineTransitionScreen: View {
         return sessionDataManager.formatTempDisplayWithUnit(tempF: tf)
     }
 
-    private func nextStepDetailText(for step: RoutineStepModel) -> AttributedString {
-        let label = stepLabel(for: step)
-        let duration = formatDuration(step.sLength)
-        var result = AttributedString("\(label): \(duration)")
-
-        if let temp = tempString(for: step) {
-            result.append(AttributedString(" | "))
-            var tempPart = AttributedString(temp)
-            tempPart.foregroundColor = ActivityTypes.temperatureTextColor(for: step.activityType)
-            result.append(tempPart)
-        }
-
-        return result
-    }
-
     // MARK: - Timer
 
     private func startTimer() {
-        stopTimer()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            guard !isPaused, !didComplete else { return }
-            if remainingSeconds > 0 {
-                remainingSeconds -= 1
-            }
-            if remainingSeconds == 0 {
-                didComplete = true
-                stopTimer()
-                onTransitionComplete()
-            }
-        }
+        timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
     }
 
     private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
+        timer.upstream.connect().cancel()
+    }
+
+    private func handleTick() {
+        guard !isPaused, !didComplete else { return }
+        if remainingSeconds <= 0 {
+            didComplete = true
+            stopTimer()
+            onTransitionComplete()
+        }
     }
 
     // MARK: - Actions
@@ -264,23 +254,13 @@ struct RoutineTransitionScreen: View {
         stopTimer()
         isPaused = true
         navigationManager.routinePauseSource = "Transition"
-        navigationManager.routinePauseAction = ""
         navigationManager.goToScreen(.routinePause)
     }
 
     private func onTransitionComplete() {
+        sessionDataManager.routineTransitionEndDate = nil
+        sessionDataManager.routineTransitionStepIndex = -1
         sessionDataManager.addRoutineStepResult(status: "")
-        if sessionDataManager.isLastRoutineStep {
-            navigationManager.goToScreen(.routineRecap)
-        } else {
-            sessionDataManager.currentRoutineStepIndex += 1
-            navigationManager.goToScreen(.routineGetReady)
-        }
-    }
-
-    private func skipAndAdvance() {
-        stopTimer()
-        sessionDataManager.addRoutineStepResult(status: "Skipped")
         if sessionDataManager.isLastRoutineStep {
             navigationManager.goToScreen(.routineRecap)
         } else {

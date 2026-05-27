@@ -19,30 +19,16 @@ struct RoutinePauseScreen: View {
 
     private var isModality: Bool { navigationManager.routinePauseSource == "Modality" }
 
-    private func getTimeString() -> String {
-        let secs = sessionDataManager.accumulatedSessionTime
-        return String(format: "%d:%02d", secs / 60, secs % 60)
-    }
-
-    private func getTempString() -> String {
-        guard let tf = sessionDataManager.currentRoutineStep?.tempF else { return "--" }
-        let unit = sessionDataManager.unitOfMeasure
-        if unit == "Metric" {
-            let c = (tf - 32) * 5 / 9
-            return String(format: "%.1f°C", c)
-        }
-        return String(format: "%.1f°F", tf)
-    }
-
     // MARK: - Actions
 
     private func handleSave() {
-        navigationManager.routinePauseAction = "save"
-        navigationManager.goToScreen(.routineModality)
+        sessionDataManager.performOptimisticModalitySave(
+            workoutManager: workoutManager,
+            navigationManager: navigationManager
+        )
     }
 
     private func handleContinue() {
-        navigationManager.routinePauseAction = ""
         if isModality {
             navigationManager.goToScreen(.routineModality)
         } else {
@@ -51,149 +37,114 @@ struct RoutinePauseScreen: View {
     }
 
     private func handleSkip() {
-        navigationManager.routinePauseAction = "skip"
         if isModality {
-            navigationManager.goToScreen(.routineModality)
+            sessionDataManager.skipCurrentModalityStep(
+                workoutManager: workoutManager,
+                navigationManager: navigationManager
+            )
         } else {
-            navigationManager.goToScreen(.routineTransition)
+            sessionDataManager.skipCurrentTransitionStep(navigationManager: navigationManager)
         }
     }
 
     // MARK: - Body
 
     var body: some View {
-        let screenSize  = screenManager.currentScreenSize
-        let screenWidth  = WKInterfaceDevice.current().screenBounds.width
-        let screenHeight = WKInterfaceDevice.current().screenBounds.height
+        GeometryReader { geo in
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-        let optionIconSize            = WatchGlobalUIConfig.ActivityStoppedOrPausedScreen.optionIconSize(for: screenSize)
-        let optionTitleFontSize       = WatchGlobalUIConfig.ActivityStoppedOrPausedScreen.optionTitleFontSize(for: screenSize)
-        let optionSubtitleFontSize    = WatchGlobalUIConfig.ActivityStoppedOrPausedScreen.optionSubtitleFontSize(for: screenSize)
-        let iconTitleGap              = WatchGlobalUIConfig.ActivityStoppedOrPausedScreen.iconTitleGap(for: screenSize)
-        let optionContainerTopPadding = WatchGlobalUIConfig.ActivityStoppedOrPausedScreen.optionContainerTopPadding(for: screenSize)
-        let optionContainerWidthRatio = WatchGlobalUIConfig.ActivityStoppedOrPausedScreen.optionContainerWidthRatio(for: screenSize)
-        let optionContainerHeightRatio = WatchGlobalUIConfig.ActivityStoppedOrPausedScreen.optionContainerHeightRatio(for: screenSize)
-        let optionContainerWidth  = screenWidth  * optionContainerWidthRatio
-        let optionContainerHeight = screenHeight * optionContainerHeightRatio
-
-        let optionContainerCornerRadius: CGFloat = 12
-        let bg   = Color.black
-        let subtitle = "\(getTimeString()) | \(getTempString())"
-
-        ZStack {
-            Color(red: 0/255, green: 116/255, blue: 255/255).ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 14) {
-
-                    // MARK: Save (Modality only)
-                    if isModality {
-                        RoutinePauseOptionContainer(
-                            iconName: "square.and.arrow.down",
-                            iconSize: optionIconSize,
-                            iconTitleGap: iconTitleGap,
-                            title: "Save",
-                            subtitle: subtitle,
-                            titleColor: .white,
-                            iconColor: .white,
-                            backgroundColor: bg,
-                            height: optionContainerHeight,
-                            width: optionContainerWidth,
-                            titleFontSize: optionTitleFontSize,
-                            subtitleFontSize: optionSubtitleFontSize,
-                            cornerRadius: optionContainerCornerRadius
-                        ) {
-                            handleSave()
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(spacing: 0) {
+                        VStack(spacing: 2) {
+                            Text("Step Paused")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color(hex: "#00A8FF"))
                         }
-                    }
+                        .padding(.top, 32)
+                        .padding(.bottom, 12)
+                        .frame(maxWidth: .infinity)
 
-                    // MARK: Continue
-                    RoutinePauseOptionContainer(
-                        iconName: "arrow.uturn.backward.square",
-                        iconSize: optionIconSize,
-                        iconTitleGap: iconTitleGap,
-                        title: "Continue",
-                        subtitle: subtitle,
-                        titleColor: .white,
-                        iconColor: .green,
-                        backgroundColor: bg,
-                        height: optionContainerHeight,
-                        width: optionContainerWidth,
-                        titleFontSize: optionTitleFontSize,
-                        subtitleFontSize: optionSubtitleFontSize,
-                        cornerRadius: optionContainerCornerRadius
-                    ) {
-                        handleContinue()
-                    }
+                        VStack(spacing: 8) {
+                            if isModality {
+                                ModernPauseRowButton(
+                                    iconName: "square.and.arrow.down.fill",
+                                    title: "Save Progress",
+                                    subtitle: "Log current segment metrics",
+                                    iconColor: Color(hex: "#00A8FF"),
+                                    action: handleSave
+                                )
+                            }
 
-                    // MARK: Skip This Step
-                    RoutinePauseOptionContainer(
-                        iconName: "forward.end.fill",
-                        iconSize: optionIconSize,
-                        iconTitleGap: iconTitleGap,
-                        title: "Skip This Step",
-                        subtitle: "",
-                        titleColor: .white,
-                        iconColor: Color(red: 1.0, green: 0.36, blue: 0.36),
-                        backgroundColor: bg,
-                        height: optionContainerHeight,
-                        width: optionContainerWidth,
-                        titleFontSize: optionTitleFontSize,
-                        subtitleFontSize: optionSubtitleFontSize,
-                        cornerRadius: optionContainerCornerRadius
-                    ) {
-                        handleSkip()
+                            ModernPauseRowButton(
+                                iconName: "arrow.uturn.backward.square",
+                                title: "Continue",
+                                subtitle: "Resume current step",
+                                iconColor: .green,
+                                action: handleContinue
+                            )
+
+                            ModernPauseRowButton(
+                                iconName: "point.bottomleft.forward.to.arrow.triangle.scurvepath",
+                                title: "Skip This Step",
+                                subtitle: "Current step will not be saved",
+                                iconColor: Color(.red).opacity(0.85),
+                                action: handleSkip
+                            )
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.bottom, 16)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 12)
-                .padding(.top, optionContainerTopPadding)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
+        .edgesIgnoringSafeArea(.all)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
     }
 }
 
-// MARK: - Option Container (private to this file)
+// MARK: - Modern Platter Row Button Component
 
-private struct RoutinePauseOptionContainer: View {
+private struct ModernPauseRowButton: View {
     let iconName: String
-    let iconSize: CGFloat
-    let iconTitleGap: CGFloat
     let title: String
     let subtitle: String
-    let titleColor: Color
     let iconColor: Color
-    let backgroundColor: Color
-    let height: CGFloat
-    let width: CGFloat
-    let titleFontSize: CGFloat
-    let subtitleFontSize: CGFloat
-    let cornerRadius: CGFloat
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: iconTitleGap) {
-                Image(systemName: iconName)
-                    .font(.system(size: iconSize, weight: .bold))
-                    .foregroundStyle(iconColor)
-                Text(title)
-                    .font(.system(size: titleFontSize, weight: .bold))
-                    .foregroundStyle(titleColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.system(size: subtitleFontSize))
-                        .foregroundStyle(.gray)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.14))
+                        .frame(width: 28, height: 28)
+
+                    Image(systemName: iconName)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(iconColor)
                 }
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
             }
-            .frame(width: width, height: height)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
     }

@@ -678,24 +678,24 @@ struct WatchGlobalUIConfig {
         // Top Corner Padding for Stop Icon
         static func stopIconTopCornerPadding(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 4
+            case .small: return 7
             case .regular: return 8
-            case .ultra: return 8
+            case .ultra: return 12
             }
         }
 
         static func stopIconSize(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 28
+            case .small: return 30
             case .regular: return 34
-            case .ultra: return 42
+            case .ultra: return 34
             }
         }
 
         // Sectional Container Paddings
         static func topPaddingTimer(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 65
+            case .small: return 74
             case .regular: return 95
             case .ultra: return 115
             }
@@ -990,6 +990,47 @@ struct WatchGlobalUIConfig {
             }
         }
     }
+
+    // ==== 10. RoutineViewScreen ====
+    struct RoutineViewScreen {
+
+        // Top Corner Padding for Stop Icon
+        static func modalityTimeAndTempFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 13
+            case .regular: return 15
+            case .ultra: return 15
+            }
+        }
+
+        // Transition Step Label Font Size
+        static func transitionStepLabelFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 13
+            case .regular: return 16
+            case .ultra: return 18
+            }
+        }
+
+        // Modality Step Label Font Size
+        static func modalityStepLabelFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 13
+            case .regular: return 16
+            case .ultra: return 18
+            }
+        }
+
+        // Transition Step Label Font Weight (Regular or Semibold)
+        static func transitionStepLabelFontWeight(for size: WatchScreenSize) -> Font.Weight {
+            switch size {
+            case .small: return .regular
+            case .regular: return .regular
+            case .ultra: return .regular
+            }
+        }
+    }
+
 
 
 

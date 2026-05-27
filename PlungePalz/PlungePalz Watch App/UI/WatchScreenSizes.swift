@@ -22,7 +22,7 @@ enum WatchScreenSize: String, CaseIterable {
         case .regular:
             return "42mm (legacy), 44mm, 45mm, 46mm (Series 10)"
         case .ultra:
-            return "49mm (Ultra models)"
+            return "49mm (Ultra 2, Ultra 3)"
         }
     }
     
@@ -32,9 +32,9 @@ enum WatchScreenSize: String, CaseIterable {
         case .small:
             return CGSize(width: 162, height: 197) // Representative of 40mm/41mm
         case .regular:
-            return CGSize(width: 184, height: 224) // Representative of 44mm/45mm
+            return CGSize(width: 184, height: 224) // Representative of 44mm/45mm/46mm
         case .ultra:
-            return CGSize(width: 205, height: 251) // 49mm Ultra
+            return CGSize(width: 211, height: 257) // Ultra 3 (Ultra 2 is 205×251, same tier as 46mm regular)
         }
     }
     
@@ -62,20 +62,28 @@ class WatchScreenManager: ObservableObject {
     static func detectScreenSize() -> WatchScreenSize {
         let screenBounds = WKInterfaceDevice.current().screenBounds
         let screenWidth = screenBounds.width
-        
-        // Detect based on screen width
+
+        // Known logical widths (pt):
+        // small:  136–187  (38–42mm class, incl. Series 10/11 42mm at 187)
+        // regular: 184–210 (44–46mm class; Ultra 2 also reports 205×251, same as Series 10 46mm)
+        // ultra:  211+     (Ultra 3 at 211×257)
         switch screenWidth {
-        case 136...162: // 38mm, 40mm, 41mm, 42mm Series 10
+        case ..<188:
             return .small
-        case 184...184: // 44mm, 45mm, 46mm Series 10
+        case 188..<211:
             return .regular
-        case 205...205: // 49mm Ultra
-            return .ultra
         default:
-            // Default to regular if we can't determine
-            return .regular
+            return .ultra
         }
     }
+
+    #if DEBUG
+    static func logDetectedScreenSize(context: String = "App launch") {
+        let bounds = WKInterfaceDevice.current().screenBounds
+        let size = detectScreenSize()
+        print("📐 [DEV] \(context) — Watch screen category: \(size.rawValue) (\(size.description)), bounds: \(Int(bounds.width))×\(Int(bounds.height)) pt")
+    }
+    #endif
     
     // Get current screen info
     var currentScreenInfo: (size: WatchScreenSize, dimensions: CGSize, cornerRadius: CGFloat) {
@@ -206,42 +214,40 @@ extension EnvironmentValues {
     }
 }
 
-// MARK: - View Extensions for Easy Access
-extension View {
-    func watchScreenSize(_ size: WatchScreenSize) -> some View {
-        environment(\.watchScreenSize, size)
-    }
-    
-    func adaptiveForWatch<Content: View>(
-        small: () -> Content,
-        regular: () -> Content,
-        ultra: () -> Content
-    ) -> some View {
-        @Environment(\.watchScreenSize) var screenSize
-        
+// MARK: - View Modifiers
+
+private struct AdaptiveForWatchContainer<Small: View, Regular: View, Ultra: View>: View {
+    @Environment(\.watchScreenSize) private var screenSize
+    let small: () -> Small
+    let regular: () -> Regular
+    let ultra: () -> Ultra
+
+    var body: some View {
         switch screenSize {
         case .small:
-            return AnyView(small())
+            small()
         case .regular:
-            return AnyView(regular())
+            regular()
         case .ultra:
-            return AnyView(ultra())
+            ultra()
         }
     }
 }
 
-// MARK: - Convenience View Modifiers
-extension View {
-    func watchAdaptivePadding() -> some View {
-        @Environment(\.watchScreenSize) var screenSize
-        let config = WatchUIConfig(for: screenSize)
-        return self.padding(config.standardPadding)
+private struct WatchAdaptivePaddingModifier: ViewModifier {
+    @Environment(\.watchScreenSize) private var screenSize
+
+    func body(content: Content) -> some View {
+        content.padding(WatchUIConfig(for: screenSize).standardPadding)
     }
-    
-    func watchAdaptiveFont(style: WatchFontStyle) -> some View {
-        @Environment(\.watchScreenSize) var screenSize
+}
+
+private struct WatchAdaptiveFontModifier: ViewModifier {
+    @Environment(\.watchScreenSize) private var screenSize
+    let style: WatchFontStyle
+
+    func body(content: Content) -> some View {
         let config = WatchUIConfig(for: screenSize)
-        
         let fontSize: CGFloat
         switch style {
         case .title:
@@ -251,8 +257,30 @@ extension View {
         case .caption:
             fontSize = config.captionFontSize
         }
-        
-        return self.font(.system(size: fontSize))
+        return content.font(.system(size: fontSize))
+    }
+}
+
+// MARK: - View Extensions for Easy Access
+extension View {
+    func watchScreenSize(_ size: WatchScreenSize) -> some View {
+        environment(\.watchScreenSize, size)
+    }
+
+    func adaptiveForWatch<Small: View, Regular: View, Ultra: View>(
+        small: @escaping () -> Small,
+        regular: @escaping () -> Regular,
+        ultra: @escaping () -> Ultra
+    ) -> some View {
+        AdaptiveForWatchContainer(small: small, regular: regular, ultra: ultra)
+    }
+
+    func watchAdaptivePadding() -> some View {
+        modifier(WatchAdaptivePaddingModifier())
+    }
+
+    func watchAdaptiveFont(style: WatchFontStyle) -> some View {
+        modifier(WatchAdaptiveFontModifier(style: style))
     }
 }
 

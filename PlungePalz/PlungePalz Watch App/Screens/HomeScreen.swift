@@ -599,11 +599,11 @@ struct RoutineSelectionRow: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black.opacity(0.4))
+                .fill(Color(hex: "#001F3F"))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                .stroke(Color.white.opacity(0.2), lineWidth: 2)
         )
         .padding(.horizontal, 8)
     }
