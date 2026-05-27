@@ -18,17 +18,21 @@ struct RoutineTransitionScreen: View {
     @State private var timer: Timer? = nil
     @State private var didComplete: Bool = false
 
+    private let accentBlue = Color(hex: "#00A8FF")
+    private let progressGray = Color(red: 165 / 255, green: 165 / 255, blue: 165 / 255)
+
     // MARK: - Computed
 
     private var currentStep: RoutineStepModel? { sessionDataManager.currentRoutineStep }
 
-    private var nextStepLabel: String {
-        guard let routine = sessionDataManager.activeRoutine else { return "" }
+    private var nextStep: RoutineStepModel? {
+        guard let routine = sessionDataManager.activeRoutine else { return nil }
         let nextIdx = sessionDataManager.currentRoutineStepIndex + 1
-        guard nextIdx < routine.routineList.count else { return "Routine Complete" }
-        let next = routine.routineList[nextIdx]
-        return next.type == "Modality" ? (next.activityType ?? "Activity") : (next.stepNickname ?? "Transition")
+        guard nextIdx < routine.routineList.count else { return nil }
+        return routine.routineList[nextIdx]
     }
+
+    private var isRoutineComplete: Bool { nextStep == nil }
 
     private var timeString: String {
         let m = remainingSeconds / 60
@@ -45,62 +49,57 @@ struct RoutineTransitionScreen: View {
 
     var body: some View {
         let screenSize = screenManager.currentScreenSize
+        let stopIconTopCornerPadding = WatchGlobalUIConfig.CountdownActivatedScreen.stopIconTopCornerPadding(for: screenSize)
+        let stopIconSize = WatchGlobalUIConfig.CountdownActivatedScreen.stopIconSize(for: screenSize)
 
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                Color.black.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Title — step nickname in accent blue
-                Text(currentStep?.stepNickname ?? "Transition")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color(hex: "#00A8FF"))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 10)
-                    .padding(.horizontal, 8)
+                VStack(spacing: 0) {
+                    Text(currentStep?.stepNickname ?? "Transition")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(accentBlue)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, stopIconSize + stopIconTopCornerPadding - 4)
+                        .padding(.horizontal, 12)
 
-                Spacer()
-
-                // Countdown timer
-                Text(timeString)
-                    .font(.system(size: 38, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
-
-                Spacer()
-
-                // Next step label
-                VStack(spacing: 2) {
-                    Text("NEXT UP")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.gray)
-                    Text(nextStepLabel)
-                        .font(.system(size: 12, weight: .semibold))
+                    Text(timeString)
+                        .font(.system(size: 38, weight: .bold, design: .monospaced))
                         .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                .padding(.bottom, 4)
+                        .monospacedDigit()
+                        .padding(.top, 6)
 
-                // Pause button
-                Button(action: handlePauseButton) {
-                    Text("PAUSE")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .background(Color(hex: "#00A8FF"))
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, 10)
-            }
+                    progressBar(width: geo.size.width * 0.88)
+                        .padding(.top, 8)
 
-            // Paused overlay
-            if isPaused {
-                Color.black.opacity(0.7).ignoresSafeArea()
-                Text("PAUSED")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white)
+                    nextUpSection
+                        .padding(.top, 10)
+                        .padding(.horizontal, 10)
+
+                    Spacer(minLength: 0)
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+
+                // Stop button overlay in top-left corner
+                VStack {
+                    HStack {
+                        Button(action: handlePauseButton) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: stopIconSize, weight: .medium))
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, stopIconTopCornerPadding)
+                        .padding(.leading, stopIconTopCornerPadding)
+
+                        Spacer()
+                    }
+                    Spacer()
+                }
             }
         }
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
@@ -120,11 +119,121 @@ struct RoutineTransitionScreen: View {
                 navigationManager.routinePauseAction = ""
                 skipAndAdvance()
             } else if action == "" {
-                // Resumed from pause — restart timer
                 isPaused = false
                 startTimer()
             }
         }
+    }
+
+    // MARK: - Progress Bar
+
+    private func progressBar(width: CGFloat) -> some View {
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(progressGray)
+                .frame(width: width, height: 8)
+            RoundedRectangle(cornerRadius: 4)
+                .fill(accentBlue)
+                .frame(width: width * progress, height: 8)
+                .animation(.linear(duration: 0.35), value: progress)
+        }
+        .frame(width: width, height: 8)
+    }
+
+    // MARK: - Next Up
+
+    private var nextUpSection: some View {
+        VStack(spacing: 5) {
+            Text("NEXT UP")
+                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .foregroundStyle(.gray)
+                .tracking(0.6)
+
+            if isRoutineComplete {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(accentBlue)
+                    Text("Routine Complete")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } else if let step = nextStep {
+                nextStepRow(for: step)
+            }
+        }
+    }
+
+    private func nextStepRow(for step: RoutineStepModel) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: stepIcon(for: step))
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(stepIconColor(for: step))
+                .frame(width: 16)
+
+            Text(nextStepDetailText(for: step))
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
+                .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    // MARK: - Formatting
+
+    private func stepLabel(for step: RoutineStepModel) -> String {
+        step.type == "Modality"
+            ? (step.activityType ?? "Activity")
+            : (step.stepNickname ?? "Transition")
+    }
+
+    private func stepIcon(for step: RoutineStepModel) -> String {
+        step.type == "Modality"
+            ? ActivityTypes.systemIcon(for: step.activityType)
+            : "arrow.right.circle"
+    }
+
+    private func stepIconColor(for step: RoutineStepModel) -> Color {
+        step.type == "Modality"
+            ? ActivityTypes.iconColor(for: step.activityType)
+            : Color.green.opacity(0.85)
+    }
+
+    private func formatDuration(_ seconds: Int) -> String {
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
+    private func tempString(for step: RoutineStepModel) -> String? {
+        guard step.type == "Modality", let tf = step.tempF else { return nil }
+        return sessionDataManager.formatTempDisplayWithUnit(tempF: tf)
+    }
+
+    private func nextStepDetailText(for step: RoutineStepModel) -> AttributedString {
+        let label = stepLabel(for: step)
+        let duration = formatDuration(step.sLength)
+        var result = AttributedString("\(label): \(duration)")
+
+        if let temp = tempString(for: step) {
+            result.append(AttributedString(" | "))
+            var tempPart = AttributedString(temp)
+            tempPart.foregroundColor = ActivityTypes.temperatureTextColor(for: step.activityType)
+            result.append(tempPart)
+        }
+
+        return result
     }
 
     // MARK: - Timer
