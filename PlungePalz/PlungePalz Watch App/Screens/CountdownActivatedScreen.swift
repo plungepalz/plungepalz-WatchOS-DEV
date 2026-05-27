@@ -85,6 +85,14 @@ struct CountdownActivatedScreen: View {
         return sessionDataManager.formatTempDisplayWithUnit(tempF: tempF)
     }
 
+    private var activityTemperatureColor: Color {
+        ActivityTypes.iconColor(for: sessionDataManager.activityType)
+    }
+
+    private var activityTemperatureIcon: String {
+        ActivityTypes.thermometerIcon(for: sessionDataManager.activityType)
+    }
+
     private func parseTimeStringToSeconds(_ str: String) -> Int? {
         let parts = str.split(separator: ":")
         guard parts.count == 2,
@@ -241,12 +249,12 @@ struct CountdownActivatedScreen: View {
 
                     // Temperature
                     HStack() {
-                        Image(systemName: "thermometer.snowflake")
-                            .foregroundColor(Color(hex: "#7cddfc"))    // Blue
+                        Image(systemName: activityTemperatureIcon)
+                            .foregroundColor(activityTemperatureColor)
                             .font(.system(size: temperatureIconSize, weight: .regular))
                         Text(getTemperatureString())
                             .font(.system(size: temperatureFontSize, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(activityTemperatureColor)
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, topPaddingTempText)
@@ -432,12 +440,16 @@ struct CountdownActivatedScreen: View {
                     #if DEBUG
                     print("=== COUNTDOWN ACTIVATED SCREEN: Resetting session tracking (new session) ===")
                     #endif
-                    // This is a completely new session
+                    // Preserve timer/temp chosen on Select Session / Set Timer / Set Temperature before reset
+                    let preservedTimeSeconds = sessionDataManager.sessionTimeSeconds
+                    let preservedTempF = sessionDataManager.sessionTempF
                     sessionDataManager.resetSessionTracking()
-                    // Set the original countdown time for new sessions
-                    sessionDataManager.originalCountdownTimeSeconds = getInitialTimerValue()
+                    sessionDataManager.sessionTimeSeconds = preservedTimeSeconds
+                    sessionDataManager.sessionTempF = preservedTempF
+                    sessionDataManager.originalCountdownTimeSeconds = preservedTimeSeconds > 0 ? preservedTimeSeconds : 500
                     #if DEBUG
                     print("=== COUNTDOWN ACTIVATED SCREEN: Set original countdown time: \(sessionDataManager.originalCountdownTimeSeconds) ===")
+                    print("Preserved sessionTimeSeconds: \(preservedTimeSeconds), sessionTempF: \(preservedTempF)")
                     #endif
                 } else {
                     #if DEBUG

@@ -141,9 +141,9 @@ struct RoutineRecapScreen: View {
                 Text("\(step.step).")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color(hex: "#00A8FF"))
-                Image(systemName: activityIcon(for: step.activityType))
+                Image(systemName: ActivityTypes.systemIcon(for: step.activityType))
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(ActivityTypes.iconColor(for: step.activityType))
                 Text(step.activityType ?? "Activity")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white)
@@ -292,15 +292,6 @@ struct RoutineRecapScreen: View {
         return String(format: "%.1f°F", f)
     }
 
-    private func activityIcon(for type: String?) -> String {
-        switch type?.lowercased() ?? "" {
-        case let s where s.contains("sauna"):   return "heater.vertical"
-        case let s where s.contains("plunge"):  return "drop.degreesign"
-        case let s where s.contains("shower"):  return "shower"
-        case let s where s.contains("tub"):     return "bathtub"
-        default:                                return "bolt.heart"
-        }
-    }
 }
 
 #Preview {

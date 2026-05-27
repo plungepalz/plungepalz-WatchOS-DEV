@@ -44,36 +44,12 @@ struct ActivityStartedScreen: View {
         return sessionDataManager.formatTempDisplayWithUnit(tempF: tempF)
     }
 
-    // MARK: - Activity Icon
     private var activityIcon: String {
-        switch sessionDataManager.activityType {
-        case "Sauna":
-            return "heater.vertical"
-        case "Cold Shower":
-            return "shower"
-        case "Steam Room":
-            return "cloud.fog"
-        case "Hot Tub":
-            return "water.waves"
-        default:
-            return "drop.degreesign"
-        }
+        ActivityTypes.systemIcon(for: sessionDataManager.activityType)
     }
 
-    // MARK: - Activity Color
     private var activityColor: Color {
-        switch sessionDataManager.activityType {
-        case "Sauna":
-            return Color.orange
-        case "Cold Shower":
-            return Color.blue
-        case "Steam Room":
-            return Color.gray
-        case "Hot Tub":
-            return Color.cyan
-        default:
-            return Color.white
-        }
+        ActivityTypes.iconColor(for: sessionDataManager.activityType)
     }
     
     // Colors
@@ -276,16 +252,20 @@ struct ActivityStartedScreen: View {
             waterLockManager.enableWaterLock()
         }
         
-        // Set session data - always countup mode, no countdown
-        sessionDataManager.currentTimerMode = "Countup"
-        sessionDataManager.originalCountdownTimeSeconds = 0
-        
         // Only reset session tracking for brand new sessions, not when resuming
         if !isResumingSession {
             #if DEBUG
             print("=== ACTIVITY STARTED SCREEN: New session - resetting tracking ===")
             #endif
+            // Preserve temp/time from Set Temperature / Use Last before reset clears them
+            let preservedTimeSeconds = sessionDataManager.sessionTimeSeconds
+            let preservedTempF = sessionDataManager.sessionTempF
             sessionDataManager.resetSessionTracking()
+            sessionDataManager.sessionTimeSeconds = preservedTimeSeconds
+            sessionDataManager.sessionTempF = preservedTempF
+            #if DEBUG
+            print("Preserved sessionTempF: \(preservedTempF), sessionTimeSeconds: \(preservedTimeSeconds)")
+            #endif
         } else {
             #if DEBUG
             print("=== ACTIVITY STARTED SCREEN: Resuming session - preserving data ===")
@@ -293,6 +273,10 @@ struct ActivityStartedScreen: View {
             print("Preserved elapsed time: \(workoutManager.elapsedTime)")
             #endif
         }
+
+        // Always countup mode for stopwatch activities (set after reset so it is not overwritten)
+        sessionDataManager.currentTimerMode = "Countup"
+        sessionDataManager.originalCountdownTimeSeconds = 0
         
         // Start heart rate monitoring
         startHeartRateMonitoring()

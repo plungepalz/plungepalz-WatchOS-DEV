@@ -82,7 +82,7 @@ struct ActivityStoppedOrPausedScreen: View {
                         navigationManager.goToScreen(.sessionRecap)
                     }
                     ActionOptionContainer(
-                        iconName: "play.square",
+                        iconName: "arrow.uturn.backward.square",
                         iconSize: optionIconSize,
                         iconTitleGap: iconTitleGap,
                         title: "Continue",
@@ -105,17 +105,17 @@ struct ActivityStoppedOrPausedScreen: View {
                             workoutManager.resumeWorkout()
                         }
                         
-                        // Navigate based on activity type
-                        if sessionDataManager.activityType == "Sauna" || sessionDataManager.activityType == "Cold Shower" {
-                            #if DEBUG
-                            print("Navigating back to ActivityStartedScreen")
-                            #endif
-                            navigationManager.goToScreen(.activityStarted)
-                        } else {
+                        // Navigate based on timer mode (stopwatch vs countdown), not activity name
+                        if sessionDataManager.isCurrentActivityCountdown {
                             #if DEBUG
                             print("Navigating back to CountdownActivatedScreen")
                             #endif
                             navigationManager.goToScreen(.countdownActivated)
+                        } else {
+                            #if DEBUG
+                            print("Navigating back to ActivityStartedScreen")
+                            #endif
+                            navigationManager.goToScreen(.activityStarted)
                         }
                     }
                     ActionOptionContainer(

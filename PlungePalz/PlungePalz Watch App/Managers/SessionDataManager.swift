@@ -68,9 +68,20 @@ class SessionDataManager: ObservableObject {
     func applyUseLastSession() {
         guard let params = currentActivitySettings?.latestSessionParams else { return }
         if currentActivitySettings?.isCountdown == true {
+            // Countdown: use configured set time (e.g. 2:00), not elapsed total from last session
             sessionTimeSeconds = params.setTimeS > 0 ? params.setTimeS : params.totalTimeS
+        } else {
+            sessionTimeSeconds = params.totalTimeS
         }
         sessionTempF = params.tempF
+    }
+
+    /// Seconds to show for "Use Last" subtitle and countdown preset (set time for countdown activities).
+    func useLastDisplayTimeSeconds(for params: LatestSessionParams) -> Int {
+        if isCurrentActivityCountdown {
+            return params.setTimeS > 0 ? params.setTimeS : params.totalTimeS
+        }
+        return params.totalTimeS
     }
 
     static func formatTime(seconds: Int) -> String {

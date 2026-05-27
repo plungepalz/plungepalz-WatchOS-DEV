@@ -16,6 +16,7 @@ struct RoutineModel: Codable, Identifiable {
     let stepsCount: Int
     let autoSaveOnModalityCompletion: Bool
     let routineList: [RoutineStepModel]
+    let total_s_length_seconds: Int
 
     enum CodingKeys: String, CodingKey {
         case routineId = "routine_id"
@@ -23,6 +24,7 @@ struct RoutineModel: Codable, Identifiable {
         case stepsCount = "steps_count"
         case autoSaveOnModalityCompletion = "auto_save_on_modality_completion"
         case routineList = "routine_list"
+        case total_s_length_seconds = "total_s_length_seconds"
     }
 }
 

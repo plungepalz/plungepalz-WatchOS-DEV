@@ -17,14 +17,17 @@ struct HomeScreen: View {
     // MARK: - HealthKit
     @StateObject private var healthKitManager = HealthKitManager.shared
     
-    // Activity options — display name, icon, API activity_type key
-    let activities = [
-        ActivityOption(name: "Plunge", icon: "drop.degreesign", type: "Cold Plunge", iconColor: .white),
-        ActivityOption(name: "Sauna", icon: "heater.vertical", type: "Sauna", iconColor: .orange),
-        ActivityOption(name: "Steam Room", icon: "cloud.fog", type: "Steam Room", iconColor: .gray),
-        ActivityOption(name: "Cold Shower", icon: "shower", type: "Cold Shower", iconColor: .blue),
-        ActivityOption(name: "Hot Tub", icon: "water.waves", type: "Hot Tub", iconColor: .cyan)
-    ]
+    // Activity options — icons/colors from ActivityTypes.swift
+    private var activities: [ActivityOption] {
+        ActivityTypes.catalog.map {
+            ActivityOption(
+                name: $0.homeDisplayName,
+                icon: $0.systemIcon,
+                type: $0.activityType,
+                iconColor: $0.iconColor
+            )
+        }
+    }
 
     private var visibleActivities: [ActivityOption] {
         guard !sessionDataManager.activityTypeSettings.isEmpty else { return activities }
@@ -596,7 +599,7 @@ struct RoutineSelectionRow: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black.opacity(0.2))
+                .fill(Color.black.opacity(0.4))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)

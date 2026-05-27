@@ -624,17 +624,17 @@ struct WatchGlobalUIConfig {
 
         static func valuesContainerWidthWholeNumber(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 54
-            case .regular: return 54
-            case .ultra: return 56
+            case .small: return 60
+            case .regular: return 60
+            case .ultra: return 66
             }
         }
 
         static func pickerContainerPaddingTrailing(for size: WatchScreenSize) -> CGFloat {
             switch size {
-            case .small: return 4
-            case .regular: return 4
-            case .ultra: return 4
+            case .small: return 2
+            case .regular: return 2
+            case .ultra: return 2
             }
         }
 

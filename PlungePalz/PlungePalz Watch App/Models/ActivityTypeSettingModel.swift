@@ -15,6 +15,26 @@ struct LatestSessionParams: Codable {
         case setTimeS = "set_time_s"
         case tempF = "temp_f"
     }
+
+    init(totalTimeS: Int, setTimeS: Int, tempF: Double) {
+        self.totalTimeS = totalTimeS
+        self.setTimeS = setTimeS
+        self.tempF = tempF
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        totalTimeS = try container.decode(Int.self, forKey: .totalTimeS)
+        setTimeS = try container.decode(Int.self, forKey: .setTimeS)
+        if let value = try? container.decode(Double.self, forKey: .tempF) {
+            tempF = value
+        } else if let string = try? container.decode(String.self, forKey: .tempF),
+                  let value = Double(string) {
+            tempF = value
+        } else {
+            tempF = 0
+        }
+    }
 }
 
 struct ActivityTypeSetting: Codable, Identifiable {

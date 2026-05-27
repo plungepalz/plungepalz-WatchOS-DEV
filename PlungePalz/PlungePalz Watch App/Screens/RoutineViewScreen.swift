@@ -51,30 +51,30 @@ struct RoutineViewScreen: View {
                             // Dynamic Sub-Header Info Area
                             VStack(spacing: 3) {
                                 Text("Routine Steps")
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .font(.system(size: 20, weight: .bold, design: .rounded))
                                     .foregroundStyle(.white)
                                 
-                                Text("\(routine.routineList.count) Steps • Total flow")
-                                    .font(.system(size: 11, weight: .medium))
+                                Text("\(routine.routineList.count) Steps • Length: \(formatDuration(routine.total_s_length_seconds))")
+                                    .font(.system(size: 14, weight: .medium))
                                     .foregroundStyle(.secondary)
                             }
-                            .padding(.top, 8)
+                            .padding(.top, 0)
                             .padding(.bottom, 4)
 
                             // Continuous list of cards
-                            LazyVStack(spacing: 6) {
+                            LazyVStack(spacing: 10) { // Increased spacing to accommodate top/bottom badge bleed room
                                 ForEach(Array(routine.routineList.enumerated()), id: \.element.id) { index, step in
                                     NewStepCard(
                                         step: step,
                                         stepLabel: stepLabel(step),
                                         duration: formatDuration(step.sLength),
-                                        tempString: tempString(for: step),
-                                        isFirst: index == 0,
-                                        isLast: index == routine.routineList.count - 1
+                                        tempString: tempString(for: step)
                                     )
                                 }
                             }
-                            .padding(.horizontal, 4)
+                            // Added left padding so the bleeding badge doesn't touch or clip off the physical watch bezel line
+                            .padding(.leading, 10)
+                            .padding(.trailing, 6)
 
                             // Modern, sweeping CTA at the base of the list
                             Button(action: startRoutine) {
@@ -109,7 +109,7 @@ struct RoutineViewScreen: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black)
         }
-        .watchBackNavigation(navigationManager: navigationManager, iconSize: 22)
+        .watchBackNavigation(navigationManager: navigationManager, iconSize: 22, topPadding: -40)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
     }
 
@@ -130,74 +130,74 @@ private struct NewStepCard: View {
     let stepLabel: String
     let duration: String
     let tempString: String?
-    let isFirst: Bool
-    let isLast: Bool
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            // Step marker capsule
-            Text("\(step.step)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .frame(width: 22, height: 16)
-                .background(Color.white.opacity(0.12))
-                .clipShape(Capsule())
-
-            // Contextual Modality/Transition Icon
-            Image(systemName: step.type == "Modality" ? activityIcon : "arrow.right.circle")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(step.type == "Modality" ? Color(hex: "#00A8FF") : .secondary)
-                .frame(width: 18)
-
-            // Content Stack (Label + Parameters underneath)
-            VStack(alignment: .leading, spacing: 2) {
+        // Single Parent Container handling strictly Rows
+        VStack(spacing: 6) {
+            // Row 1: Icon on Left, stepLabel on Right
+            HStack(spacing: 6) {
+                Image(systemName: itemIcon)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(itemIconColor)
+                    .frame(width: 18, alignment: .leading)
+                
                 Text(stepLabel)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                 
-                // Stacked Row metrics underneath title
-                HStack(spacing: 6) {
-                    Text(duration)
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                    
-                    if let t = tempString {
-                        // Small dot separator to cleanly stitch text components
-                        Text("•")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary.opacity(0.5))
-                        
-                        Text(t)
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundStyle(Color(hex: "#00A8FF"))
-                    }
-                }
+                Spacer()
             }
             
-            Spacer()
+            // Row 2: Duration on Left, tempString on Right
+            HStack {
+                Text(duration)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                if let t = tempString {
+                    Text(t)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(tempFontColor)
+                }
+            }
         }
-        .padding(.horizontal, 10)
+        .padding(.leading, 20) // Shifts row text safely right so it clears the bleeding badge
+        .padding(.trailing, 10)
         .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        // Absolute Bleed Overlay Execution
+        .overlay(
+            Text("#\(step.step)")
+                .font(.system(size: 12, weight: .black, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Color(hex: "#00A8FF")) // Uses your brand palette to make the pop-out badge look deliberate and premium
+                .clipShape(Capsule())
+                // Negative offsets pull the top-left corner up and out into the black background canvas
+                .offset(x: -10, y: -6),
+            alignment: .topLeading
+        )
     }
 
-    private var activityIcon: String {
-        switch step.activityType ?? "" {
-        case "Cold Plunge":   return "drop.degreesign"
-        case "Sauna":        return "heater.vertical"
-        case "Steam Room":   return "cloud.fog"
-        case "Cold Shower":  return "shower"
-        case "Hot Tub":      return "water.waves"
-        default:
-            let lowerType = (step.activityType ?? "").lowercased()
-            if lowerType.contains("plunge") { return "drop.degreesign" }
-            if lowerType.contains("sauna") { return "heater.vertical" }
-            if lowerType.contains("steam") { return "cloud.fog" }
-            if lowerType.contains("shower") { return "shower" }
-            if lowerType.contains("tub") { return "water.waves" }
-            return "bolt.heart"
-        }
+    // MARK: - Visual Configurations
+
+    private var itemIcon: String {
+        guard step.type == "Modality" else { return "arrow.right.circle" }
+        return ActivityTypes.systemIcon(for: step.activityType)
+    }
+
+    private var itemIconColor: Color {
+        guard step.type == "Modality" else { return Color.green.opacity(0.8) }
+        return ActivityTypes.iconColor(for: step.activityType)
+    }
+
+    private var tempFontColor: Color {
+        ActivityTypes.temperatureTextColor(for: step.activityType)
     }
 }

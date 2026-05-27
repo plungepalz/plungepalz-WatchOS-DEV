@@ -109,7 +109,7 @@ struct RoutinePauseScreen: View {
 
                     // MARK: Continue
                     RoutinePauseOptionContainer(
-                        iconName: "play.fill",
+                        iconName: "arrow.uturn.backward.square",
                         iconSize: optionIconSize,
                         iconTitleGap: iconTitleGap,
                         title: "Continue",

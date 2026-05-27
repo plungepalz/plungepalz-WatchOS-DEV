@@ -17,7 +17,7 @@ struct SelectSessionScreen: View {
 
     private var useLastSubtitle: String? {
         guard let params = sessionDataManager.currentActivitySettings?.latestSessionParams else { return nil }
-        let timeStr = SessionDataManager.formatTime(seconds: params.totalTimeS)
+        let timeStr = SessionDataManager.formatTime(seconds: sessionDataManager.useLastDisplayTimeSeconds(for: params))
         let tempStr = sessionDataManager.formatTempDisplay(tempF: params.tempF)
         return "\(timeStr) | \(tempStr)"
     }
