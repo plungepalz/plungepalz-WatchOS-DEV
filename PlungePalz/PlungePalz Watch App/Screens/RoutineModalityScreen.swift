@@ -79,12 +79,25 @@ struct RoutineModalityScreen: View {
         ActivityTypes.iconColor(for: step?.activityType)
     }
 
+    private func formatDuration(seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+
     private var nextStepLabel: String {
         guard let routine = routine else { return "" }
         let nextIdx = sessionDataManager.currentRoutineStepIndex + 1
         guard nextIdx < routine.routineList.count else { return "Routine Complete" }
         let next = routine.routineList[nextIdx]
         return next.type == "Modality" ? (next.activityType ?? "Activity") : (next.stepNickname ?? "Transition")
+    }
+
+    private var nextStepDuration: Int? {
+        guard let routine = routine else { return nil }
+        let nextIdx = sessionDataManager.currentRoutineStepIndex + 1
+        guard nextIdx < routine.routineList.count else { return nil }
+        return routine.routineList[nextIdx].sLength
     }
 
     private var progressFraction: CGFloat {
@@ -250,7 +263,7 @@ struct RoutineModalityScreen: View {
                     }
                     .frame(width: geo.size.width, height: geo.size.height)
                 } else {
-                    nextUpPage
+                    nextUpPage(geo: geo)
                 }
 
                 VStack {
@@ -270,17 +283,7 @@ struct RoutineModalityScreen: View {
                     Spacer()
                 }
 
-                VStack(spacing: 6) {
-                    Circle()
-                        .fill(subPageIndex == 0 ? Color.white : Color.gray.opacity(0.4))
-                        .frame(width: 6, height: 6)
-                    Circle()
-                        .fill(subPageIndex == 1 ? Color.white : Color.gray.opacity(0.4))
-                        .frame(width: 6, height: 6)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .padding(.leading, 4)
-                .padding(.bottom, 16)
+                pageIndicatorOverlay(in: geo)
             }
             .ignoresSafeArea()
         }
@@ -335,31 +338,85 @@ struct RoutineModalityScreen: View {
 
     // MARK: - Next Up Page
 
-    private var nextUpPage: some View {
-        VStack(spacing: 8) {
-            Text("NEXT UP")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.gray)
-                .padding(.top, 20)
+    private func nextUpPage(geo: GeometryProxy) -> some View {
+        let topInset: CGFloat = 44
+        let horizontalInset: CGFloat = 28
 
-            Text(nextStepLabel)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 12)
+        let screenSize = screenManager.currentScreenSize
+        let nextUpPageTransitionTextFontSize = WatchGlobalUIConfig.RoutineModalityScreen.nextUpPageTransitionTextFontSize(for: screenSize)
+        let nextUpPageTopPadding = WatchGlobalUIConfig.RoutineModalityScreen.nextUpPageTopPadding(for: screenSize)
 
-            Spacer()
+        return VStack(spacing: 0) {
+            Spacer(minLength: 0)
 
-            if let routine = routine {
-                let stepIdx = sessionDataManager.currentRoutineStepIndex
-                Text("Step \(stepIdx + 1) of \(routine.stepsCount)")
-                    .font(.system(size: 11))
+            VStack(spacing: 12) {
+                Text("NEXT UP")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(.gray)
-            }
+                    .tracking(0.6)
 
-            Spacer()
+                VStack(spacing: 6) {
+                    Text(nextStepLabel)
+                        .font(.system(size: nextUpPageTransitionTextFontSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let duration = nextStepDuration {
+                        HStack(spacing: 4) {
+                            Image(systemName: "timer")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(Color.green.opacity(0.8))
+                            Text(formatDuration(seconds: duration))
+                                .font(.system(size: 22, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.green.opacity(0.8))
+                        }
+                    }
+                }
+
+                if let routine = routine {
+                    let nextIdx = sessionDataManager.currentRoutineStepIndex + 1
+                    Text(nextIdx < routine.routineList.count
+                         ? "Step \(nextIdx + 1) of \(routine.stepsCount)"
+                         : "Final step")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundStyle(.gray)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, horizontalInset)
+            .padding(.top, nextUpPageTopPadding)
+
+            Spacer(minLength: 0)
         }
+        .padding(.top, topInset)
+        .frame(width: geo.size.width, height: geo.size.height)
+    }
+
+    // MARK: - Page Indicator
+
+    private func pageIndicatorOverlay(in geo: GeometryProxy) -> some View {
+        let screenSize = screenManager.currentScreenSize
+        let dotSize: CGFloat = 6
+        let dotSpacing: CGFloat = 6
+        let leading: CGFloat = WatchGlobalUIConfig.RoutineModalityScreen.pageIndicatorOverlayXPositionLeading(for: screenSize)
+        let bottom: CGFloat = WatchGlobalUIConfig.RoutineModalityScreen.pageIndicatorOverlayYPositionBottom(for: screenSize)
+        let stackHeight = dotSize * 2 + dotSpacing
+        let centerX = leading + dotSize / 2
+        let centerY = geo.size.height - bottom - stackHeight / 2
+
+        return VStack(spacing: dotSpacing) {
+            pageIndicatorDot(isActive: subPageIndex == 0)
+            pageIndicatorDot(isActive: subPageIndex == 1)
+        }
+        .position(x: centerX, y: centerY)
+    }
+
+    private func pageIndicatorDot(isActive: Bool) -> some View {
+        Circle()
+            .fill(isActive ? Color.white : Color.gray.opacity(0.4))
+            .frame(width: 6, height: 6)
     }
 
     // MARK: - Snapshot Helpers

@@ -1030,6 +1030,47 @@ struct WatchGlobalUIConfig {
             }
         }
     }
+    
+    // ==== 11. RoutineModalityScreen ====
+    struct RoutineModalityScreen {
+
+        // Top Corner Padding for Stop Icon
+        static func pageIndicatorOverlayXPositionLeading(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 7
+            case .regular: return 7
+            case .ultra: return 7
+            }
+        }
+
+        // Page Indicator Overlay Y Position Bottom
+        static func pageIndicatorOverlayYPositionBottom(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return -20
+            case .regular: return -32
+            case .ultra: return -40
+            }
+        }
+
+        // nextUpPage top padding
+        static func nextUpPageTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 30
+            case .regular: return 20
+            case .ultra: return 20
+            }
+        }
+
+        // nextUpPage trnasistion text font size
+        static func nextUpPageTransitionTextFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 22
+            case .ultra: return 24
+            }
+        }
+
+    }
 
 
 

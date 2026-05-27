@@ -17,6 +17,9 @@ struct RoutineTransitionScreen: View {
     @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
     @State private var didComplete: Bool = false
 
+    // Add this near the top of your view with your other state variables
+    @State private var displayRemainingSeconds: Double = 0.0
+
     private let accentBlue = Color(hex: "#00A8FF")
     private let progressGray = Color(red: 165 / 255, green: 165 / 255, blue: 165 / 255)
 
@@ -43,10 +46,11 @@ struct RoutineTransitionScreen: View {
     }
 
     private var timeString: String {
-        let displaySeconds = Int(ceil(remainingSeconds))
-        let m = displaySeconds / 60
-        let s = displaySeconds % 60
-        return String(format: "%d:%02d", m, s)
+        // Format the newly created @State variable instead of the old computed property
+        let totalSeconds = Int(displayRemainingSeconds)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private var progress: Double {
@@ -120,12 +124,17 @@ struct RoutineTransitionScreen: View {
             if sessionDataManager.hasTransitionSnapshotForCurrentStep {
                 didComplete = false
                 isPaused = false
-                startTimer()
             } else if let step = currentStep {
                 didComplete = false
                 sessionDataManager.beginTransitionStep(totalSeconds: step.sLength)
-                startTimer()
             }
+            
+            // Initialize the starting value for the UI immediately
+            if let endDate = sessionDataManager.routineTransitionEndDate {
+                self.displayRemainingSeconds = max(0, endDate.timeIntervalSinceNow)
+            }
+            
+            startTimer()
         }
         .onDisappear {
             stopTimer()
@@ -176,6 +185,7 @@ struct RoutineTransitionScreen: View {
 
                 Spacer()
             }
+            .padding(.horizontal, 4)
 
             HStack {
                 Text(formatDuration(step.sLength))
@@ -190,9 +200,9 @@ struct RoutineTransitionScreen: View {
                         .foregroundStyle(ActivityTypes.temperatureTextColor(for: step.activityType))
                 }
             }
+            .padding(.horizontal, 10)
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -241,10 +251,21 @@ struct RoutineTransitionScreen: View {
 
     private func handleTick() {
         guard !isPaused, !didComplete else { return }
-        if remainingSeconds <= 0 {
+        
+        guard let endDate = sessionDataManager.routineTransitionEndDate else { return }
+        
+        // 1. Calculate the actual time left
+        let calculatedRemaining = max(0, endDate.timeIntervalSinceNow)
+        
+        // 2. Update the @State variable (Triggers the SwiftUI screen refresh!)
+        self.displayRemainingSeconds = calculatedRemaining
+        
+        // 3. Check for completion
+        if displayRemainingSeconds <= 0 {
             didComplete = true
             stopTimer()
-            onTransitionComplete()
+            // Whatever your completion function is:
+            onTransitionComplete() 
         }
     }
 

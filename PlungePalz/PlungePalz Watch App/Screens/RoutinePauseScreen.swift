@@ -69,8 +69,8 @@ struct RoutinePauseScreen: View {
                             if isModality {
                                 ModernPauseRowButton(
                                     iconName: "square.and.arrow.down.fill",
-                                    title: "Save Progress",
-                                    subtitle: "Log current segment metrics",
+                                    title: "Save",
+                                    subtitle: "Save your activity",
                                     iconColor: Color(hex: "#00A8FF"),
                                     action: handleSave
                                 )
