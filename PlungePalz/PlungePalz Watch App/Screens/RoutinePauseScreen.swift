@@ -62,6 +62,11 @@ struct RoutinePauseScreen: View {
     // MARK: - Body
 
     var body: some View {
+
+        // UI Config
+        let screenSize = screenManager.currentScreenSize
+        let stepPausedTextTopPadding = WatchGlobalUIConfig.RoutinePauseScreen.stepPausedTextTopPadding(for: screenManager.currentScreenSize)
+
         GeometryReader { geo in
             ZStack {
                 Color.black.ignoresSafeArea()
@@ -73,7 +78,7 @@ struct RoutinePauseScreen: View {
                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color(hex: "#00A8FF"))
                         }
-                        .padding(.top, 32)
+                        .padding(.top, stepPausedTextTopPadding)
                         .padding(.bottom, 12)
                         .frame(maxWidth: .infinity)
 
@@ -153,15 +158,16 @@ private struct ModernPauseRowButton: View {
                     Text(subtitle)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .lineLimit( title == "Save" ? 1 : 2 )
                         .fixedSize(horizontal: false, vertical: true)
                 }
+
 
                 Spacer()
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.1))
+            .background(Color.white.opacity(0.15))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)

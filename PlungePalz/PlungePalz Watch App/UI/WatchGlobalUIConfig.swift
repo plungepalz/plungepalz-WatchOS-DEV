@@ -1072,6 +1072,20 @@ struct WatchGlobalUIConfig {
 
     }
 
+    // ==== 12. RoutinePauseScreen ====
+    struct RoutinePauseScreen {
+
+        // Top Padding for "Step Paused" Text
+        static func stepPausedTextTopPadding(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 20
+            case .regular: return 31
+            case .ultra: return 34
+            }
+        }
+
+    }
+
 
 
 
