@@ -7,11 +7,14 @@
 
 import SwiftUI
 import Combine
+import WatchKit
 
 struct RoutineTransitionScreen: View {
     @ObservedObject var navigationManager: NavigationManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var screenManager = WatchScreenManager()
+    @StateObject private var waterLockManager = WaterLockManager.shared
 
     @State private var isPaused: Bool = false
     @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
@@ -37,8 +40,7 @@ struct RoutineTransitionScreen: View {
     private var isRoutineComplete: Bool { nextStep == nil }
 
     private var remainingSeconds: Double {
-        guard let endDate = sessionDataManager.routineTransitionEndDate else { return 0 }
-        return max(0, endDate.timeIntervalSinceNow)
+        sessionDataManager.transitionRemainingSeconds
     }
 
     private var totalSeconds: Int {
@@ -102,10 +104,11 @@ struct RoutineTransitionScreen: View {
                         Button(action: handlePauseButton) {
                             Image(systemName: "stop.circle.fill")
                                 .font(.system(size: stopIconSize, weight: .medium))
-                                .foregroundStyle(.red)
+                                .foregroundStyle(waterLockManager.shouldDisableStopButton ? .gray : .red)
                                 .background(Color.black.clipShape(Circle()))
                         }
                         .buttonStyle(.plain)
+                        .disabled(waterLockManager.shouldDisableStopButton)
                         .padding(.top, stopIconTopCornerPadding)
                         .padding(.leading, stopIconTopCornerPadding)
 
@@ -124,15 +127,16 @@ struct RoutineTransitionScreen: View {
             if sessionDataManager.hasTransitionSnapshotForCurrentStep {
                 didComplete = false
                 isPaused = false
+                sessionDataManager.resumeTransitionStep()
             } else if let step = currentStep {
                 didComplete = false
-                sessionDataManager.beginTransitionStep(totalSeconds: step.sLength)
+                let plannedStartDate = sessionDataManager.currentRoutineStepPlannedStartDate ?? Date()
+                sessionDataManager.beginTransitionStep(totalSeconds: step.sLength, startDate: plannedStartDate)
             }
-            
-            // Initialize the starting value for the UI immediately
-            if let endDate = sessionDataManager.routineTransitionEndDate {
-                self.displayRemainingSeconds = max(0, endDate.timeIntervalSinceNow)
-            }
+
+            startOrResumeTemporaryWorkout(startDate: sessionDataManager.currentRoutineStepPlannedStartDate ?? Date())
+            // Initialize the starting value for the UI immediately.
+            displayRemainingSeconds = remainingSeconds
             
             startTimer()
         }
@@ -249,22 +253,31 @@ struct RoutineTransitionScreen: View {
         timer.upstream.connect().cancel()
     }
 
+    private func startOrResumeTemporaryWorkout(startDate: Date = Date()) {
+        if workoutManager.isActive && workoutManager.isPaused {
+            workoutManager.resumeWorkout()
+        } else if !workoutManager.isActive {
+            workoutManager.startWorkout(startDate: startDate)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            guard self.navigationManager.currentScreen == .routineTransition,
+                  self.workoutManager.isActive,
+                  !self.workoutManager.isPaused else { return }
+            self.waterLockManager.enableWaterLock()
+        }
+    }
+
     private func handleTick() {
         guard !isPaused, !didComplete else { return }
-        
-        guard let endDate = sessionDataManager.routineTransitionEndDate else { return }
-        
-        // 1. Calculate the actual time left
-        let calculatedRemaining = max(0, endDate.timeIntervalSinceNow)
-        
-        // 2. Update the @State variable (Triggers the SwiftUI screen refresh!)
-        self.displayRemainingSeconds = calculatedRemaining
-        
-        // 3. Check for completion
+
+        displayRemainingSeconds = remainingSeconds
+
         if displayRemainingSeconds <= 0 {
             didComplete = true
             stopTimer()
-            // Whatever your completion function is:
+            WKInterfaceDevice.current().play(.notification)
+            WKInterfaceDevice.current().play(.success)
             onTransitionComplete() 
         }
     }
@@ -272,15 +285,23 @@ struct RoutineTransitionScreen: View {
     // MARK: - Actions
 
     private func handlePauseButton() {
+        sessionDataManager.pauseTransitionStep()
         stopTimer()
         isPaused = true
+        if workoutManager.isActive && !workoutManager.isPaused {
+            workoutManager.pauseWorkout()
+        }
         navigationManager.routinePauseSource = "Transition"
         navigationManager.goToScreen(.routinePause)
     }
 
     private func onTransitionComplete() {
+        if workoutManager.isActive {
+            workoutManager.discardWorkout()
+        }
         sessionDataManager.routineTransitionEndDate = nil
         sessionDataManager.routineTransitionStepIndex = -1
+        sessionDataManager.routineTransitionPausedRemainingSeconds = nil
         sessionDataManager.addRoutineStepResult(status: "")
         if sessionDataManager.isLastRoutineStep {
             navigationManager.goToScreen(.routineRecap)
@@ -294,4 +315,5 @@ struct RoutineTransitionScreen: View {
 #Preview {
     RoutineTransitionScreen(navigationManager: NavigationManager())
         .environmentObject(SessionDataManager())
+        .environmentObject(WorkoutManager())
 }

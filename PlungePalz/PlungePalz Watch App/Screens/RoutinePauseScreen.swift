@@ -19,6 +19,15 @@ struct RoutinePauseScreen: View {
 
     private var isModality: Bool { navigationManager.routinePauseSource == "Modality" }
 
+    private var saveSubtitle: String {
+        "\(formatTime(sessionDataManager.modalityAccumulatedSessionTime)) | \(temperatureString)"
+    }
+
+    private var temperatureString: String {
+        guard let tempF = sessionDataManager.currentRoutineStep?.tempF else { return "--" }
+        return sessionDataManager.formatTempDisplayWithUnit(tempF: tempF)
+    }
+
     // MARK: - Actions
 
     private func handleSave() {
@@ -43,6 +52,9 @@ struct RoutinePauseScreen: View {
                 navigationManager: navigationManager
             )
         } else {
+            if workoutManager.isActive {
+                workoutManager.discardWorkout()
+            }
             sessionDataManager.skipCurrentTransitionStep(navigationManager: navigationManager)
         }
     }
@@ -70,7 +82,7 @@ struct RoutinePauseScreen: View {
                                 ModernPauseRowButton(
                                     iconName: "square.and.arrow.down.fill",
                                     title: "Save",
-                                    subtitle: "Save your activity",
+                                    subtitle: saveSubtitle,
                                     iconColor: Color(hex: "#00A8FF"),
                                     action: handleSave
                                 )
@@ -101,6 +113,12 @@ struct RoutinePauseScreen: View {
         }
         .edgesIgnoringSafeArea(.all)
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
+    }
+
+    private func formatTime(_ totalSeconds: Int) -> String {
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 

@@ -227,13 +227,14 @@ struct ActivityStartedScreen: View {
         
         // Determine if this is a new session or resuming from pause
         let isResumingSession = workoutManager.isActive && workoutManager.elapsedTime > 0
+        let plannedStartDate = sessionDataManager.activityStartDate ?? Date()
         
         // Start workout session if not already active
         if !workoutManager.isActive {
             #if DEBUG
             print("=== ACTIVITY STARTED SCREEN: Starting new workout session ===")
             #endif
-            workoutManager.startWorkout()
+            workoutManager.startWorkout(startDate: plannedStartDate)
             
             // Wait for workout session to be active before enabling Water Lock
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -260,9 +261,11 @@ struct ActivityStartedScreen: View {
             // Preserve temp/time from Set Temperature / Use Last before reset clears them
             let preservedTimeSeconds = sessionDataManager.sessionTimeSeconds
             let preservedTempF = sessionDataManager.sessionTempF
+            let preservedStartDate = sessionDataManager.activityStartDate ?? plannedStartDate
             sessionDataManager.resetSessionTracking()
             sessionDataManager.sessionTimeSeconds = preservedTimeSeconds
             sessionDataManager.sessionTempF = preservedTempF
+            sessionDataManager.activityStartDate = preservedStartDate
             #if DEBUG
             print("Preserved sessionTempF: \(preservedTempF), sessionTimeSeconds: \(preservedTimeSeconds)")
             #endif

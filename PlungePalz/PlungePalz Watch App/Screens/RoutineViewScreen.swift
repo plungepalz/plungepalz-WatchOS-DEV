@@ -201,7 +201,7 @@ private struct NewStepCard: View {
         .padding(.trailing, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(Color.white.opacity(0.1))
+        .background(Color.white.opacity(0.3))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         // Absolute Bleed Overlay Execution
         .overlay(

@@ -18,6 +18,9 @@ struct GetReadyCountdownTimer: View {
     @State private var totalTime: Double = 5.0
     @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
     @State private var isCancelled: Bool = false
+    @State private var didNavigate: Bool = false
+    @State private var timerStartDate: Date?
+    @State private var plannedActivityStartDate: Date?
     
     private var title: String {
         return "Get Ready!"
@@ -86,16 +89,21 @@ struct GetReadyCountdownTimer: View {
             // Get get ready timer value from UserDefaults, default to 5 seconds if not found
             let getReadySeconds = UserDefaults.standard.integer(forKey: "get_ready_timer_seconds")
             let finalGetReadySeconds = getReadySeconds > 0 ? getReadySeconds : 5
-            
-            // Initialize countdown and total time
+
             countdown = Double(finalGetReadySeconds)
             totalTime = Double(finalGetReadySeconds)
-            
+            didNavigate = false
+            isCancelled = false
+
+            let startDate = Date()
+            timerStartDate = startDate
+            plannedActivityStartDate = startDate.addingTimeInterval(Double(finalGetReadySeconds))
+
             #if DEBUG
             print("GetReadyCountdownTimer using stored value: \(finalGetReadySeconds) seconds")
             print("Current activity type: \(sessionDataManager.activityType)")
             #endif
-            
+
             // Start background timer to ensure countdown continues even if screen sleeps
             backgroundTimerManager.startGetReadyTimer(duration: Double(finalGetReadySeconds)) {
                 // This completion will be called when timer completes (even in background)
@@ -117,6 +125,12 @@ struct GetReadyCountdownTimer: View {
     
     // MARK: - Navigation Logic
     private func navigateToCorrectScreen() {
+        guard !didNavigate else { return }
+        didNavigate = true
+        stopTimer()
+        backgroundTimerManager.stopGetReadyTimer()
+        sessionDataManager.activityStartDate = plannedActivityStartDate ?? Date()
+
         #if DEBUG
         print("🎯 GetReadyCountdownTimer: Timer completed, routing based on timer mode for: \(sessionDataManager.activityType)")
         #endif
@@ -140,6 +154,8 @@ struct GetReadyCountdownTimer: View {
         
         // Stop background timer
         backgroundTimerManager.stopGetReadyTimer()
+        plannedActivityStartDate = nil
+        sessionDataManager.activityStartDate = nil
         
         // Stop the UI timer
         stopTimer()
@@ -150,16 +166,12 @@ struct GetReadyCountdownTimer: View {
     private func handleTimerTick() {
         // Don't process timer ticks if cancelled
         guard !isCancelled else { return }
-        
-        // Sync with background timer
-        let backgroundRemaining = backgroundTimerManager.getGetReadyTimerRemainingTime()
-        countdown = backgroundRemaining
-        
+
+        guard let plannedActivityStartDate else { return }
+        countdown = max(0, plannedActivityStartDate.timeIntervalSinceNow)
+
         if countdown <= 0.05 {
             countdown = 0
-            stopTimer()
-            
-            // Automatically transition to the correct screen based on activity type
             navigateToCorrectScreen()
         }
     }

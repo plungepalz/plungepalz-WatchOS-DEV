@@ -16,6 +16,7 @@ class SessionDataManager: ObservableObject {
     @Published var accumulatedSessionTime: Int = 0
     @Published var originalCountdownTimeSeconds: Int = 0
     @Published var currentTimerMode: String = "Countdown" // "Countdown" or "Countup"
+    @Published var activityStartDate: Date?
 
     // Activity Type - Default to "Cold Plunge"
     @Published var activityType: String = "Cold Plunge"
@@ -47,11 +48,13 @@ class SessionDataManager: ObservableObject {
     @Published var currentRoutineStepIndex: Int = 0
     @Published var routineStepResults: [RoutineStepResult] = []
     @Published var routineStepStats: [Int: RoutineStepStats] = [:]
+    @Published var currentRoutineStepPlannedStartDate: Date?
 
     // MARK: - Routine Step Execution Snapshots (survive pause navigation)
     @Published var routineTransitionEndDate: Date?
     @Published var routineTransitionTotalSeconds: Int = 0
     @Published var routineTransitionStepIndex: Int = -1
+    @Published var routineTransitionPausedRemainingSeconds: Double?
 
     @Published var routineModalityHasSnapshot: Bool = false
     @Published var routineModalityStepIndex: Int = -1
@@ -64,6 +67,10 @@ class SessionDataManager: ObservableObject {
     @Published var routineModalitySubPageIndex: Int = 0
     @Published var routineModalityDidAutoSave: Bool = false
     @Published var routineModalitySessionStartDate: Date?
+    @Published var routineModalityActivityStartDate: Date?
+    @Published var routineModalityAccumulatedActiveSeconds: Double = 0
+    @Published var routineModalityPausedCountdownRemainingSeconds: Double?
+    @Published var routineModalityPausedEpicElapsedSeconds: Double?
 
     // MARK: - Activity Type Settings Helpers
 
@@ -108,6 +115,13 @@ class SessionDataManager: ObservableObject {
         return String(format: "%d:%02d", minutes, secs)
     }
 
+    func formattedLocalTime(for date: Date?) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd-yyyy HH:mm:ss"
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: date ?? Date())
+    }
+
     func formatTempDisplay(tempF: Double) -> String {
         if unitOfMeasure == "Metric" {
             let celsius = (tempF - 32) * 5 / 9
@@ -142,6 +156,7 @@ class SessionDataManager: ObservableObject {
         currentRoutineStepIndex = 0
         routineStepResults = []
         routineStepStats = [:]
+        currentRoutineStepPlannedStartDate = nil
         clearRoutineExecutionSnapshots()
     }
 
@@ -149,6 +164,7 @@ class SessionDataManager: ObservableObject {
         routineTransitionEndDate = nil
         routineTransitionTotalSeconds = 0
         routineTransitionStepIndex = -1
+        routineTransitionPausedRemainingSeconds = nil
         clearRoutineModalitySnapshot()
     }
 
@@ -164,10 +180,15 @@ class SessionDataManager: ObservableObject {
         routineModalitySubPageIndex = 0
         routineModalityDidAutoSave = false
         routineModalitySessionStartDate = nil
+        routineModalityActivityStartDate = nil
+        routineModalityAccumulatedActiveSeconds = 0
+        routineModalityPausedCountdownRemainingSeconds = nil
+        routineModalityPausedEpicElapsedSeconds = nil
     }
 
     var hasTransitionSnapshotForCurrentStep: Bool {
-        routineTransitionStepIndex == currentRoutineStepIndex && routineTransitionEndDate != nil
+        routineTransitionStepIndex == currentRoutineStepIndex
+            && (routineTransitionEndDate != nil || routineTransitionPausedRemainingSeconds != nil)
     }
 
     var hasModalitySnapshotForCurrentStep: Bool {
@@ -175,49 +196,117 @@ class SessionDataManager: ObservableObject {
     }
 
     var modalityAccumulatedSessionTime: Int {
-        guard let start = routineModalitySessionStartDate else { return accumulatedSessionTime }
-        return max(0, Int(Date().timeIntervalSince(start)))
+        let currentActiveSegment = routineModalitySessionStartDate.map { Date().timeIntervalSince($0) } ?? 0
+        return max(0, Int(routineModalityAccumulatedActiveSeconds + currentActiveSegment))
     }
 
     var modalityEpicElapsedSeconds: Int {
+        if let pausedEpicElapsed = routineModalityPausedEpicElapsedSeconds {
+            return max(0, Int(pausedEpicElapsed))
+        }
         guard routineModalityIsEpicMode, let start = routineModalityEpicStartDate else { return 0 }
         return max(0, Int(Date().timeIntervalSince(start)))
     }
 
     var modalityCountdownRemainingSeconds: Double {
+        if let pausedRemaining = routineModalityPausedCountdownRemainingSeconds {
+            return max(0, pausedRemaining)
+        }
         guard !routineModalityIsEpicMode, let endDate = routineModalityCountdownEndDate else { return 0 }
         return max(0, endDate.timeIntervalSinceNow)
     }
 
-    func beginTransitionStep(totalSeconds: Int) {
-        routineTransitionStepIndex = currentRoutineStepIndex
-        routineTransitionTotalSeconds = totalSeconds
-        routineTransitionEndDate = Date().addingTimeInterval(TimeInterval(totalSeconds))
+    var transitionRemainingSeconds: Double {
+        if let pausedRemaining = routineTransitionPausedRemainingSeconds {
+            return max(0, pausedRemaining)
+        }
+        guard let endDate = routineTransitionEndDate else { return 0 }
+        return max(0, endDate.timeIntervalSinceNow)
     }
 
-    func beginModalityStep(countdownSeconds: Int) {
+    func beginTransitionStep(totalSeconds: Int, startDate: Date = Date()) {
+        routineTransitionStepIndex = currentRoutineStepIndex
+        routineTransitionTotalSeconds = totalSeconds
+        routineTransitionEndDate = startDate.addingTimeInterval(TimeInterval(totalSeconds))
+        routineTransitionPausedRemainingSeconds = nil
+    }
+
+    func beginModalityStep(countdownSeconds: Int, startDate: Date = Date()) {
         routineModalityHasSnapshot = true
         routineModalityStepIndex = currentRoutineStepIndex
         routineModalityInitialCountdown = countdownSeconds
-        routineModalityCountdownEndDate = Date().addingTimeInterval(TimeInterval(countdownSeconds))
+        routineModalityCountdownEndDate = startDate.addingTimeInterval(TimeInterval(countdownSeconds))
         routineModalityEpicStartDate = nil
         routineModalityIsEpicMode = false
         routineModalityHRArray = []
         routineModalityShowFlagBounce = [false, false, false, false, false]
         routineModalitySubPageIndex = 0
         routineModalityDidAutoSave = false
-        routineModalitySessionStartDate = Date()
+        routineModalitySessionStartDate = startDate
+        routineModalityActivityStartDate = startDate
+        routineModalityAccumulatedActiveSeconds = 0
+        routineModalityPausedCountdownRemainingSeconds = nil
+        routineModalityPausedEpicElapsedSeconds = nil
     }
 
     func enterModalityEpicMode() {
         routineModalityIsEpicMode = true
         routineModalityEpicStartDate = Date()
         routineModalityCountdownEndDate = nil
+        routineModalityPausedCountdownRemainingSeconds = nil
+        routineModalityPausedEpicElapsedSeconds = nil
+    }
+
+    func pauseTransitionStep() {
+        guard hasTransitionSnapshotForCurrentStep,
+              routineTransitionPausedRemainingSeconds == nil else { return }
+        routineTransitionPausedRemainingSeconds = transitionRemainingSeconds
+    }
+
+    func resumeTransitionStep() {
+        guard hasTransitionSnapshotForCurrentStep,
+              let pausedRemaining = routineTransitionPausedRemainingSeconds else { return }
+        routineTransitionEndDate = Date().addingTimeInterval(pausedRemaining)
+        routineTransitionPausedRemainingSeconds = nil
+    }
+
+    func pauseModalityStep() {
+        guard hasModalitySnapshotForCurrentStep,
+              routineModalityPausedCountdownRemainingSeconds == nil,
+              routineModalityPausedEpicElapsedSeconds == nil else { return }
+
+        routineModalityAccumulatedActiveSeconds = Double(modalityAccumulatedSessionTime)
+        routineModalitySessionStartDate = nil
+
+        if routineModalityIsEpicMode {
+            routineModalityPausedEpicElapsedSeconds = Double(modalityEpicElapsedSeconds)
+        } else {
+            routineModalityPausedCountdownRemainingSeconds = modalityCountdownRemainingSeconds
+        }
+    }
+
+    func resumeModalityStep() {
+        guard hasModalitySnapshotForCurrentStep else { return }
+
+        if routineModalityIsEpicMode {
+            if let pausedEpicElapsed = routineModalityPausedEpicElapsedSeconds {
+                routineModalityEpicStartDate = Date().addingTimeInterval(-pausedEpicElapsed)
+                routineModalityPausedEpicElapsedSeconds = nil
+                routineModalitySessionStartDate = Date()
+            }
+        } else if let pausedRemaining = routineModalityPausedCountdownRemainingSeconds {
+            routineModalityCountdownEndDate = Date().addingTimeInterval(pausedRemaining)
+            routineModalityPausedCountdownRemainingSeconds = nil
+            routineModalitySessionStartDate = Date()
+        } else if routineModalitySessionStartDate == nil {
+            routineModalitySessionStartDate = Date()
+        }
     }
 
     func skipCurrentTransitionStep(navigationManager: NavigationManager) {
         routineTransitionEndDate = nil
         routineTransitionStepIndex = -1
+        routineTransitionPausedRemainingSeconds = nil
         addRoutineStepResult(status: "Skipped")
         if isLastRoutineStep {
             navigationManager.goToScreen(.routineRecap)
@@ -304,8 +393,7 @@ class SessionDataManager: ObservableObject {
         formatter.dateFormat = "MM-dd-yyyy HH:mm:ss"
         formatter.timeZone = TimeZone(abbreviation: "UTC")
         let timestampUTC = formatter.string(from: Date())
-        formatter.timeZone = TimeZone.current
-        let localTime = formatter.string(from: Date())
+        let localTime = formattedLocalTime(for: routineModalityActivityStartDate)
 
         let payload: [String: Any] = [
             "d_id": d_id,
@@ -635,6 +723,7 @@ class SessionDataManager: ObservableObject {
         accumulatedSessionTime = 0
         originalCountdownTimeSeconds = 0
         currentTimerMode = "Countdown"
+        activityStartDate = nil
         sessionTimeSeconds = 0
         sessionTempF = 0
 

@@ -17,6 +17,7 @@ struct RoutineModalityScreen: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var screenManager = WatchScreenManager()
     @StateObject private var healthKitManager = HealthKitManager.shared
+    @StateObject private var waterLockManager = WaterLockManager.shared
 
     // MARK: - Timer State
     @State private var secondsTimer: Timer? = nil
@@ -271,10 +272,10 @@ struct RoutineModalityScreen: View {
                         Button(action: handlePauseButton) {
                             Image(systemName: "stop.circle.fill")
                                 .font(.system(size: stopIconSize, weight: .medium))
-                                .foregroundColor(isSaving ? .gray : .red)
+                                .foregroundColor((isSaving || waterLockManager.shouldDisableStopButton) ? .gray : .red)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .disabled(isSaving)
+                        .disabled(isSaving || waterLockManager.shouldDisableStopButton)
                         .padding(.top, stopIconTopCornerPadding)
                         .padding(.leading, stopIconTopCornerPadding)
 
@@ -313,21 +314,25 @@ struct RoutineModalityScreen: View {
         }
         .onAppear {
             if sessionDataManager.hasModalitySnapshotForCurrentStep {
+                sessionDataManager.resumeModalityStep()
                 restoreFromSnapshot()
                 if workoutManager.isPaused {
                     workoutManager.resumeWorkout()
                 }
+                enableWaterLockWhenReady()
                 startTimers()
             } else {
                 guard let step = step else { return }
-                sessionDataManager.beginModalityStep(countdownSeconds: step.sLength)
+                let plannedStartDate = sessionDataManager.currentRoutineStepPlannedStartDate ?? Date()
+                sessionDataManager.beginModalityStep(countdownSeconds: step.sLength, startDate: plannedStartDate)
                 sessionDataManager.accumulatedSessionTime = 0
                 hrArray = []
                 showFlagBounce = [false, false, false, false, false]
                 subPageIndex = 0
                 crownPage = 0
                 isSaving = false
-                workoutManager.startWorkout()
+                workoutManager.startWorkout(startDate: plannedStartDate)
+                enableWaterLockWhenReady()
                 startTimers()
             }
         }
@@ -469,6 +474,15 @@ struct RoutineModalityScreen: View {
         healthKitManager.forceStopAllHealthKitQueries()
     }
 
+    private func enableWaterLockWhenReady() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            guard self.navigationManager.currentScreen == .routineModality,
+                  self.workoutManager.isActive,
+                  !self.workoutManager.isPaused else { return }
+            self.waterLockManager.enableWaterLock()
+        }
+    }
+
     private func onSecondTick() {
         guard !isSaving else { return }
         sessionDataManager.accumulatedSessionTime = sessionDataManager.modalityAccumulatedSessionTime
@@ -494,6 +508,9 @@ struct RoutineModalityScreen: View {
 
     private func onCountdownComplete() {
         guard let routine = routine else { return }
+        WKInterfaceDevice.current().play(.notification)
+        WKInterfaceDevice.current().play(.success)
+
         if routine.autoSaveOnModalityCompletion {
             guard !sessionDataManager.routineModalityDidAutoSave else { return }
             sessionDataManager.routineModalityDidAutoSave = true
@@ -510,6 +527,7 @@ struct RoutineModalityScreen: View {
 
     private func handlePauseButton() {
         syncSnapshotToSession()
+        sessionDataManager.pauseModalityStep()
         stopTimers()
         if workoutManager.isActive && !workoutManager.isPaused {
             workoutManager.pauseWorkout()

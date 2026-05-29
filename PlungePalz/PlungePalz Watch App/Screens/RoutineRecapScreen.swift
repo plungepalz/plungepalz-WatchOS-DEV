@@ -14,6 +14,8 @@ struct RoutineRecapScreen: View {
     @StateObject private var screenManager = WatchScreenManager()
 
     @State private var pageIndex: Int = 0
+    @State private var crownPage: Double = 0
+    @FocusState private var isCrownFocused: Bool
 
     // MARK: - Computed
 
@@ -27,6 +29,8 @@ struct RoutineRecapScreen: View {
     // MARK: - Body
 
     var body: some View {
+        let maxPage = max(0, totalPages - 1)
+
         ZStack {
             Color.black.ignoresSafeArea()
 
@@ -58,12 +62,36 @@ struct RoutineRecapScreen: View {
             DragGesture(minimumDistance: 20)
                 .onEnded { value in
                     if value.translation.height < -30 {
-                        withAnimation { pageIndex = (pageIndex + 1) % totalPages }
+                        setPageIndex((pageIndex + 1) % totalPages)
                     } else if value.translation.height > 30 {
-                        withAnimation { pageIndex = (pageIndex - 1 + totalPages) % totalPages }
+                        setPageIndex((pageIndex - 1 + totalPages) % totalPages)
                     }
                 }
         )
+        .focusable(true)
+        .focused($isCrownFocused)
+        .digitalCrownRotation(
+            $crownPage,
+            from: 0,
+            through: Double(maxPage),
+            by: 1,
+            sensitivity: .medium,
+            isContinuous: false,
+            isHapticFeedbackEnabled: true
+        )
+        .onChange(of: crownPage) { _, newValue in
+            let targetPage = min(maxPage, max(0, Int(round(newValue))))
+            guard targetPage != pageIndex else { return }
+            withAnimation {
+                pageIndex = targetPage
+            }
+        }
+        .onAppear {
+            crownPage = Double(pageIndex)
+            DispatchQueue.main.async {
+                isCrownFocused = true
+            }
+        }
     }
 
     // MARK: - Summary Page (page 0)
@@ -82,7 +110,7 @@ struct RoutineRecapScreen: View {
                 .lineLimit(2)
 
             Text(routine?.nickname ?? "")
-                .font(.system(size: 11))
+                .font(.system(size: 15))
                 .foregroundStyle(Color(hex: "#00A8FF"))
                 .lineLimit(1)
 
@@ -278,6 +306,13 @@ struct RoutineRecapScreen: View {
     private func navigateHome() {
         sessionDataManager.resetRoutineState()
         navigationManager.goToHome()
+    }
+
+    private func setPageIndex(_ newIndex: Int) {
+        withAnimation {
+            pageIndex = newIndex
+            crownPage = Double(newIndex)
+        }
     }
 
     private func formatTime(_ seconds: Int) -> String {

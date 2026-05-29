@@ -398,12 +398,14 @@ struct CountdownActivatedScreen: View {
                 print("Session data manager HR array count: \(sessionDataManager.HRArray.count)")
                 #endif
                 
+                let plannedStartDate = sessionDataManager.activityStartDate ?? Date()
+
                 // Start workout session if not already active
                 if !workoutManager.isActive {
                     #if DEBUG
                     print("=== COUNTDOWN ACTIVATED SCREEN: Starting workout session ===")
                     #endif
-                    workoutManager.startWorkout()
+                    workoutManager.startWorkout(startDate: plannedStartDate)
                     
                     // Wait for workout session to be active before enabling Water Lock
                     // Use a small delay to ensure the workout session is fully started
@@ -443,9 +445,11 @@ struct CountdownActivatedScreen: View {
                     // Preserve timer/temp chosen on Select Session / Set Timer / Set Temperature before reset
                     let preservedTimeSeconds = sessionDataManager.sessionTimeSeconds
                     let preservedTempF = sessionDataManager.sessionTempF
+                    let preservedStartDate = sessionDataManager.activityStartDate ?? plannedStartDate
                     sessionDataManager.resetSessionTracking()
                     sessionDataManager.sessionTimeSeconds = preservedTimeSeconds
                     sessionDataManager.sessionTempF = preservedTempF
+                    sessionDataManager.activityStartDate = preservedStartDate
                     sessionDataManager.originalCountdownTimeSeconds = preservedTimeSeconds > 0 ? preservedTimeSeconds : 500
                     #if DEBUG
                     print("=== COUNTDOWN ACTIVATED SCREEN: Set original countdown time: \(sessionDataManager.originalCountdownTimeSeconds) ===")

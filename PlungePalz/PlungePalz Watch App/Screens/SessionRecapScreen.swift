@@ -45,7 +45,7 @@ struct SessionRecapScreen: View {
         let epicTime = sessionDataManager.epicTime ?? 0
         let temp_F = getSessionTemperature()
         let hr_array = sessionDataManager.HRArray
-        let localTime = getFormattedTimeLocal()
+        let localTime = sessionDataManager.formattedLocalTime(for: sessionDataManager.activityStartDate)
         let d_id = getDeviceName()
         let d_mv = getDeviceModelVersion()
         let d_fv = getDeviceFirmwareVersion()
@@ -557,14 +557,6 @@ struct SessionRecapScreen: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM-dd-yyyy HH:mm:ss"
         formatter.timeZone = TimeZone(abbreviation: "UTC")
-        return formatter.string(from: Date())
-    }
-
-    // Helper: Get formatted local time string
-    private func getFormattedTimeLocal() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM-dd-yyyy HH:mm:ss"
-        formatter.timeZone = TimeZone.current
         return formatter.string(from: Date())
     }
 

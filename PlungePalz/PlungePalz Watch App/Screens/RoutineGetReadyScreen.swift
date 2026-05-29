@@ -12,11 +12,14 @@ struct RoutineGetReadyScreen: View {
     @ObservedObject var navigationManager: NavigationManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @StateObject private var screenManager = WatchScreenManager()
+    @StateObject private var backgroundTimerManager = BackgroundTimerManager.shared
 
     @State private var countdown: Double = 5.0
     @State private var totalTime: Double = 5.0
     @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
     @State private var didNavigate: Bool = false
+    @State private var isCancelled: Bool = false
+    @State private var plannedStepStartDate: Date?
 
     // MARK: - Body
 
@@ -87,10 +90,20 @@ struct RoutineGetReadyScreen: View {
             countdown = Double(duration)
             totalTime = Double(duration)
             didNavigate = false
+            isCancelled = false
+            plannedStepStartDate = Date().addingTimeInterval(Double(duration))
+            backgroundTimerManager.startGetReadyTimer(duration: Double(duration)) {
+                DispatchQueue.main.async {
+                    navigateToStep()
+                }
+            }
             startTimer()
         }
         .onDisappear {
             stopTimer()
+            if !isCancelled {
+                backgroundTimerManager.stopGetReadyTimer()
+            }
         }
     }
 
@@ -105,10 +118,9 @@ struct RoutineGetReadyScreen: View {
     }
 
     private func handleTick() {
-        countdown = max(0, countdown - 0.05)
+        guard !isCancelled, let plannedStepStartDate else { return }
+        countdown = max(0, plannedStepStartDate.timeIntervalSinceNow)
         if countdown <= 0.05 && !didNavigate {
-            didNavigate = true
-            stopTimer()
             navigateToStep()
         }
     }
@@ -116,6 +128,12 @@ struct RoutineGetReadyScreen: View {
     // MARK: - Navigation
 
     private func navigateToStep() {
+        guard !didNavigate else { return }
+        didNavigate = true
+        stopTimer()
+        backgroundTimerManager.stopGetReadyTimer()
+        sessionDataManager.currentRoutineStepPlannedStartDate = plannedStepStartDate ?? Date()
+
         guard let step = sessionDataManager.currentRoutineStep else {
             navigationManager.goToHome()
             return
@@ -128,6 +146,9 @@ struct RoutineGetReadyScreen: View {
     }
 
     private func handleBack() {
+        isCancelled = true
+        backgroundTimerManager.stopGetReadyTimer()
+        sessionDataManager.currentRoutineStepPlannedStartDate = nil
         stopTimer()
         navigationManager.goToScreen(.routineView)
     }

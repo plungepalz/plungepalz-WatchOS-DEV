@@ -34,7 +34,7 @@ class WorkoutManager: NSObject, ObservableObject {
     private var pauseDate: Date?
     
     // MARK: - Start Workout
-    func startWorkout() {
+    func startWorkout(startDate: Date = Date()) {
         #if DEBUG
         print("=== WORKOUT MANAGER: startWorkout called ===")
         print("Current isActive: \(isActive)")
@@ -60,15 +60,15 @@ class WorkoutManager: NSObject, ObservableObject {
             builder?.delegate = self
             
             // Start the session and builder
-            session?.startActivity(with: Date())
-            builder?.beginCollection(withStart: Date()) { (success, error) in
+            session?.startActivity(with: startDate)
+            builder?.beginCollection(withStart: startDate) { (success, error) in
                 // Handle error if needed
             }
             
             isActive = true
             isPaused = false
             workoutState = .running
-            sessionStartDate = Date()
+            sessionStartDate = startDate
             startTimer()
         } catch {
             print("Failed to start workout session: \(error)")
@@ -211,7 +211,13 @@ class WorkoutManager: NSObject, ObservableObject {
         session?.end()
         builder?.discardWorkout()
         isActive = false
+        isPaused = false
+        elapsedTime = 0
         workoutState = .ended
+        sessionStartDate = nil
+        pauseDate = nil
+        session = nil
+        builder = nil
         stopTimer()
     }
     
