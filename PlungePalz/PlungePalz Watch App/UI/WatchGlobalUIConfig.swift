@@ -442,7 +442,7 @@ struct WatchGlobalUIConfig {
             case .ultra: return 100
             }
         }
-        
+
     }
 
     // ==== 3. SelectSessionScreen ====
@@ -487,12 +487,12 @@ struct WatchGlobalUIConfig {
             case .ultra: return 10
             }
         }
-        
+
     }
 
     // ==== 4. SetTimerScreen ====
     struct SetTimerScreen {
-        
+
         // Header Assets
         static func headerIconSize(for size: WatchScreenSize) -> CGFloat {
             switch size {
@@ -580,7 +580,7 @@ struct WatchGlobalUIConfig {
 
     // ==== 5. SetTemperatureScreen ====
     struct SetTemperatureScreen {
-        
+
         // Header Assets
         static func headerIconSize(for size: WatchScreenSize) -> CGFloat {
             switch size {
@@ -1057,7 +1057,7 @@ struct WatchGlobalUIConfig {
             switch size {
             case .small: return 30
             case .regular: return 20
-            case .ultra: return 20
+            case .ultra: return 50
             }
         }
 
@@ -1086,6 +1086,120 @@ struct WatchGlobalUIConfig {
 
     }
 
+    // ==== 13. RoutineRecapScreen ====
+    struct RoutineRecapScreen {
+        // Step Circle Size
+        static func stepCircleSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 22
+            case .regular: return 26
+            case .ultra: return 30
+            }
+        }
+
+        // Step Font Size
+        static func stepFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 12
+            case .regular: return 14
+            case .ultra: return 16
+            }
+        }
+
+        // Modality Top Row Size (Icon + Name)
+        static func modalityTopRowFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func modalityTopRowIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 20
+            case .ultra: return 24
+            }
+        }
+
+        // Time/Temp Row Size
+        static func timeTempFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 15
+            case .regular: return 17
+            case .ultra: return 19
+            }
+        }
+
+        static func timeTempIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 16
+            case .ultra: return 18
+            }
+        }
+
+        // HR Stats Row Size
+        static func hrStatsFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 13
+            case .regular: return 15
+            case .ultra: return 17
+            }
+        }
+
+        static func hrStatsIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 14
+            case .regular: return 16
+            case .ultra: return 18
+            }
+        }
+
+        // Status Text Size
+        static func statusFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        // Home Icon Size
+        static func homeIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 24
+            case .regular: return 28
+            case .ultra: return 32
+            }
+        }
+
+        // Transition Page Size
+        static func transitionIconSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 18
+            case .regular: return 22
+            case .ultra: return 26
+            }
+        }
+
+        static func transitionFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+
+        static func transitionNicknameFontSize(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 16
+            case .regular: return 18
+            case .ultra: return 20
+            }
+        }
+    }
 
 
 

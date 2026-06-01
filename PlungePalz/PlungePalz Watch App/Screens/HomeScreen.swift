@@ -498,6 +498,7 @@ struct HomeScreen: View {
             }
 
             sessionDataManager.resetSessionTracking()
+            sessionDataManager.routineStartISO = nil
             requestHealthKitPermissions()
         }
         .onChange(of: locationManager.location) { newLocation in
@@ -580,11 +581,20 @@ struct RoutineSelectionRow: View {
     let routine: RoutineModel
     let connectionStatusIconSize: CGFloat
 
+    private var isAdvisorRoutine: Bool {
+        routine.nickname == "Advisor" || routine.nickname == "AI Advisor"
+    }
+
+    private var routineIconName: String {
+        isAdvisorRoutine ? "sparkles.2" : "point.topright.arrow.triangle.backward.to.point.bottomleft.scurvepath"
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "point.topright.arrow.triangle.backward.to.point.bottomleft.scurvepath")
+            Image(systemName: routineIconName)
                 .font(.system(size: connectionStatusIconSize * 0.9, weight: .bold))
                 .foregroundStyle(.white)
+                .scaleEffect(x: isAdvisorRoutine ? -1 : 1, y: 1)
                 .frame(width: connectionStatusIconSize)
 
             Text(routine.nickname)

@@ -48,6 +48,7 @@ class SessionDataManager: ObservableObject {
     @Published var currentRoutineStepIndex: Int = 0
     @Published var routineStepResults: [RoutineStepResult] = []
     @Published var routineStepStats: [Int: RoutineStepStats] = [:]
+    @Published var routineStartISO: String?
     @Published var currentRoutineStepPlannedStartDate: Date?
 
     // MARK: - Routine Step Execution Snapshots (survive pause navigation)
@@ -122,6 +123,13 @@ class SessionDataManager: ObservableObject {
         return formatter.string(from: date ?? Date())
     }
 
+    func formattedRoutineStartISO(for date: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        return formatter.string(from: date)
+    }
+
     func formatTempDisplay(tempF: Double) -> String {
         if unitOfMeasure == "Metric" {
             let celsius = (tempF - 32) * 5 / 9
@@ -156,6 +164,7 @@ class SessionDataManager: ObservableObject {
         currentRoutineStepIndex = 0
         routineStepResults = []
         routineStepStats = [:]
+        routineStartISO = nil
         currentRoutineStepPlannedStartDate = nil
         clearRoutineExecutionSnapshots()
     }
@@ -394,6 +403,8 @@ class SessionDataManager: ObservableObject {
         formatter.timeZone = TimeZone(abbreviation: "UTC")
         let timestampUTC = formatter.string(from: Date())
         let localTime = formattedLocalTime(for: routineModalityActivityStartDate)
+        let routineStart = routineStartISO ?? formattedRoutineStartISO()
+        routineStartISO = routineStart
 
         let payload: [String: Any] = [
             "d_id": d_id,
@@ -413,6 +424,7 @@ class SessionDataManager: ObservableObject {
             "hasGpsData": hasGps,
             "activityType": step.activityType ?? "Activity",
             "routine_id": routine.routineId,
+            "routine_start_iso": routineStart,
             "routine_line_id": step.routineLineId,
             "step_number": step.step
         ]

@@ -136,6 +136,7 @@ struct RoutineViewScreen: View {
         let selectedRoutine = routine
         sessionDataManager.resetRoutineState()
         sessionDataManager.activeRoutine = selectedRoutine
+        sessionDataManager.routineStartISO = sessionDataManager.formattedRoutineStartISO()
         navigationManager.goToScreen(.routineGetReady)
     }
 }
@@ -201,7 +202,7 @@ private struct NewStepCard: View {
         .padding(.trailing, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(Color.white.opacity(0.3))
+        .background(Color.white.opacity(0.15))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         // Absolute Bleed Overlay Execution
         .overlay(

@@ -17,6 +17,9 @@ struct RoutineRecapScreen: View {
     @State private var crownPage: Double = 0
     @FocusState private var isCrownFocused: Bool
 
+    // Access screen size config
+    @Environment(\.watchScreenSize) private var screenSize
+
     // MARK: - Computed
 
     private var routine: RoutineModel? { sessionDataManager.activeRoutine }
@@ -150,158 +153,243 @@ struct RoutineRecapScreen: View {
     }
 
     // MARK: - Modality Step Page
-
     private func modalityStepPage(step: RoutineStepModel, result: RoutineStepResult?, stats: RoutineStepStats?) -> some View {
-        let unit = sessionDataManager.unitOfMeasure
-        let statusText  = result?.status ?? ""
-        let statusColor: Color = {
-            switch statusText {
-            case "Saved":    return .green
-            case "Pending":  return .yellow
-            case "Skipped":  return Color(hex: "#8EC2FF")
-            default:         return .white
-            }
-        }()
+        let safeActivityType = step.activityType ?? "Modality"
+        let sfSymbol = getSFSymbol(for: safeActivityType)
+        let color = getColor(for: safeActivityType)
 
-        return VStack(spacing: 4) {
-            // Row 1: step# + icon + activity name
-            HStack(spacing: 6) {
-                Text("\(step.step).")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color(hex: "#00A8FF"))
-                Image(systemName: ActivityTypes.systemIcon(for: step.activityType))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(ActivityTypes.iconColor(for: step.activityType))
-                Text(step.activityType ?? "Activity")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer()
-            }
-            .padding(.top, 10)
-            .padding(.horizontal, 8)
+        let statusText: String
+        let statusColor: Color
 
-            if let stats = stats {
-                // Row 2: time | temp
-                HStack(spacing: 8) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "stopwatch")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.gray)
-                        Text(formatTime(stats.totalTime))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                    Spacer()
-                    HStack(spacing: 3) {
-                        Image(systemName: "thermometer.medium")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.gray)
-                        Text(formatTemp(stats.tempF, unit: unit))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .padding(.horizontal, 8)
+        // Map your exact string statuses to UI representation
+        if result?.status == "Saved" {
+            statusText = "Saved"
+            statusColor = .green
+        } else if result?.status == "Pending" {
+            statusText = "Pending"
+            statusColor = .orange
+        } else {
+            statusText = "Skipped"
+            statusColor = .gray
+        }
 
-                // Row 3: HR stats
-                HStack(spacing: 4) {
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.down.heart")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.red)
-                        Text("\(stats.minHR)")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                    Spacer()
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.up.heart")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.red)
-                        Text("\(stats.maxHR)")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                    Spacer()
-                    HStack(spacing: 2) {
-                        Image(systemName: "heart")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.red)
-                        Text("\(stats.avgHR)")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .padding(.horizontal, 8)
-            }
-
-            Spacer()
-
-            // Row 4: Status + Home button
-            HStack {
-                if !statusText.isEmpty {
-                    Text("Status: \(statusText)")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(statusColor)
-                }
-                Spacer()
-                Button(action: navigateHome) {
-                    Image(systemName: "house.fill")
-                        .font(.system(size: 11))
+        return VStack(spacing: 8) {
+            // Row 1: Step Circle + Icon + Name (Spanning Full Horizontal Width)
+            HStack(spacing: 8) {
+                // Step Circle
+                ZStack {
+                    Circle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(
+                            width: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize),
+                            height: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize)
+                        )
+                    Text("\(step.step)")
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.stepFontSize(for: screenSize), weight: .bold))
                         .foregroundStyle(.white)
+                }
+
+                // Icon + Activity Name
+                HStack(spacing: 4) {
+                    Image(systemName: sfSymbol)
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.modalityTopRowIconSize(for: screenSize)))
+                    Text(safeActivityType)
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.modalityTopRowFontSize(for: screenSize), weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(color)
+
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+
+            Divider()
+
+            // Conditional Row 2 & 3 (Show data if saved or pending)
+            if statusText == "Saved" || statusText == "Pending" {
+                // Row 2: Time | Temp
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.timeTempIconSize(for: screenSize)))
+                            .foregroundStyle(.gray)
+                        // Fallback to planned step length if stats totalTime is missing
+                        let timeVal = stats?.totalTime ?? step.sLength
+                        Text(formatTime(timeVal))
+                            .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.timeTempFontSize(for: screenSize), weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "thermometer")
+                            .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.timeTempIconSize(for: screenSize)))
+                            .foregroundStyle(.gray)
+                        // Fallback to planned step tempF if stats temp is missing
+                        let tempVal = stats?.tempF ?? step.tempF ?? 0
+                        let tempStr = tempVal > 0 ? formatTemp(tempVal, unit: sessionDataManager.unitOfMeasure) : "--"
+                        Text(tempStr)
+                            .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.timeTempFontSize(for: screenSize), weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 8)
+
+                // Row 3: HR Stats
+                if let stats = stats {
+                    HStack(spacing: 4) {
+                        // Min HR
+                        VStack(spacing: 2) {
+                            Image(systemName: "arrow.down.heart.fill")
+                                .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.hrStatsIconSize(for: screenSize)))
+                                .foregroundStyle(.red)
+                            Text(formatHR(Double(stats.minHR)))
+                                .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.hrStatsFontSize(for: screenSize), weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        // Avg HR
+                        VStack(spacing: 2) {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.hrStatsIconSize(for: screenSize)))
+                                .foregroundStyle(.red)
+                            Text(formatHR(Double(stats.avgHR)))
+                                .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.hrStatsFontSize(for: screenSize), weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        // Max HR
+                        VStack(spacing: 2) {
+                            Image(systemName: "arrow.up.heart.fill")
+                                .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.hrStatsIconSize(for: screenSize)))
+                                .foregroundStyle(.red)
+                            Text(formatHR(Double(stats.maxHR)))
+                                .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.hrStatsFontSize(for: screenSize), weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.horizontal, 4)
+                } else {
+                    Text("No HR Data")
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.hrStatsFontSize(for: screenSize)))
+                        .foregroundStyle(.gray)
+                        .padding(.vertical, 4)
+                }
+
+                Divider()
+            }
+
+            // Bottom Status Row
+            HStack {
+                Text(statusText)
+                    .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.statusFontSize(for: screenSize), weight: .bold))
+                    .foregroundStyle(statusColor)
+
+                Spacer()
+
+                Button(action: {
+                    navigateHome()
+                }) {
+                    Image(systemName: "house.fill")
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.homeIconSize(for: screenSize)))
+                        .foregroundStyle(Color(hex: "#00A8FF"))
                 }
                 .buttonStyle(.plain)
             }
+            .padding(.horizontal, 12)
+
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+
+    // Helper strictly limits double-based HRs down to no-decimal integers
+    private func formatHR(_ value: Double) -> String {
+        return value > 0 ? String(Int(value)) : "--"
+    }
+
+    // MARK: - Transition Step Page
+    private func transitionStepPage(step: RoutineStepModel) -> some View {
+        return VStack(spacing: 16) {
+
+            // Top row: Step in circle | Icon | "Transition"
+            HStack(spacing: 8) {
+                // Step Circle
+                ZStack {
+                    Circle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(
+                            width: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize),
+                            height: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize)
+                        )
+                    Text("\(step.step)")
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.stepFontSize(for: screenSize), weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
+                // Green Icon & Text
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.transitionIconSize(for: screenSize)))
+                    Text("Transition")
+                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.transitionFontSize(for: screenSize), weight: .bold))
+                }
+                .foregroundStyle(.green)
+
+                Spacer()
+            }
             .padding(.horizontal, 8)
+            .padding(.top, 16)
+
+            // Step Nickname
+            let nickname = step.stepNickname ?? ""
+            Text(nickname.isEmpty ? "Rest" : nickname)
+                .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.transitionNicknameFontSize(for: screenSize), weight: .medium))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 8)
+
+            Spacer()
+
+            // Home Button
+            Button(action: {
+                navigateHome()
+            }) {
+                Image(systemName: "house.fill")
+                    .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.homeIconSize(for: screenSize)))
+                    .foregroundStyle(Color(hex: "#00A8FF"))
+            }
+            .buttonStyle(.plain)
             .padding(.bottom, 8)
         }
     }
 
-    // MARK: - Transition Step Page
+    // MARK: - Helpers
 
-    private func transitionStepPage(step: RoutineStepModel) -> some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                Text("\(step.step).")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color(hex: "#00A8FF"))
-                Image(systemName: "arrow.right.circle")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white)
-            }
-            .padding(.top, 12)
-
-            Text(step.stepNickname ?? "Transition")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .minimumScaleFactor(0.7)
-                .padding(.horizontal, 8)
-
-            Spacer()
-
-            Button(action: navigateHome) {
-                HStack(spacing: 4) {
-                    Image(systemName: "house.fill")
-                        .font(.system(size: 11))
-                    Text("Home")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(Color.gray.opacity(0.3))
-                .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .padding(.bottom, 10)
+    private func getSFSymbol(for type: String) -> String {
+        switch type {
+        case "Cold Plunge": return "drop.degreesign"
+        case "Cold Shower": return "shower"
+        case "Sauna": return "heater.vertical"
+        case "Steam Room": return "cloud.fog"
+        case "Hot Tub": return "water.waves"
+        default: return "questionmark.circle"
         }
     }
 
-    // MARK: - Helpers
+    private func getColor(for type: String) -> Color {
+        switch type {
+        case "Cold Plunge": return Color(red: 0.24, green: 0.78, blue: 1.0)
+        case "Cold Shower": return .blue
+        case "Sauna": return .orange
+        case "Steam Room": return .gray
+        case "Hot Tub": return Color(red: 0.95, green: 0.35, blue: 0.25)
+        default: return .white
+        }
+    }
 
     private func navigateHome() {
         sessionDataManager.resetRoutineState()
