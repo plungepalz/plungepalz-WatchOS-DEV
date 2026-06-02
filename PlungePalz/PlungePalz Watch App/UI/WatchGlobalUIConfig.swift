@@ -1106,6 +1106,22 @@ struct WatchGlobalUIConfig {
             }
         }
 
+        static func stepCircleTopOffset(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 0
+            case .regular: return 20
+            case .ultra: return 32
+            }
+        }
+
+        static func stepCircleLeadingOffset(for size: WatchScreenSize) -> CGFloat {
+            switch size {
+            case .small: return 6
+            case .regular: return 20
+            case .ultra: return 32
+            }
+        }
+
         // Modality Top Row Size (Icon + Name)
         static func modalityTopRowFontSize(for size: WatchScreenSize) -> CGFloat {
             switch size {

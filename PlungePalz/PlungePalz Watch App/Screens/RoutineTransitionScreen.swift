@@ -82,7 +82,7 @@ struct RoutineTransitionScreen: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.top, 10)
-                    .padding(.horizontal, 36)
+                    .padding(.horizontal, 6)
                     .frame(maxWidth: .infinity)
 
                     Text(timeString)

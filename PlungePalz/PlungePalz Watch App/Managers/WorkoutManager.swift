@@ -114,41 +114,20 @@ class WorkoutManager: NSObject, ObservableObject {
         session.stopActivity(with: Date())
     }
     
-    // MARK: - Handle Workout Ending (simplified approach)
+    // MARK: - Handle Workout Ending (discard — does NOT save to Apple Fitness)
     private func handleWorkoutEnding() {
-        guard let builder = self.builder else { return }
-        
-        #if DEBUG
-        print("=== WORKOUT MANAGER: handleWorkoutEnding called ===")
-        #endif
-        
-        // Use the same approach as the working MyWorkouts app
-        builder.endCollection(withEnd: Date()) { [weak self] (success, error) in
-            if let error = error {
-                print("❌ Failed to end workout collection: \(error.localizedDescription)")
-                return
-            }
+        guard !isEndingWorkout, let builder = self.builder else { return }
+        isEndingWorkout = true
 
-            #if DEBUG
-            print("✅ Workout collection ended successfully")
-            #endif
+        builder.endCollection(withEnd: Date()) { [weak self] (_, _) in
+            // Discard instead of finishWorkout — nothing is written to HealthKit/Apple Fitness
+            self?.builder?.discardWorkout()
 
-            self?.builder?.finishWorkout { (workout, error) in
-                DispatchQueue.main.async {
-                    if let error = error {
-                        print("❌ Failed to save workout to HealthKit: \(error.localizedDescription)")
-                        return
-                    }
-                    
-                    if let savedWorkout = workout {
-                        print("✅ Workout saved successfully to HealthKit. UUID: \(savedWorkout.uuid)")
-                        self?.isActive = false
-                        self?.isEndingWorkout = false
-                        self?.stopTimer()
-                    } else {
-                        print("❌ Workout finished but no workout object returned")
-                    }
-                }
+            DispatchQueue.main.async {
+                self?.isActive = false
+                self?.isEndingWorkout = false
+                self?.stopTimer()
+                print("✅ Workout discarded — not saved to Apple Fitness")
             }
         }
     }
@@ -164,43 +143,6 @@ class WorkoutManager: NSObject, ObservableObject {
         builder.add([heartRateSample]) { success, error in
             if let error = error {
                 print("Failed to add heart rate data: \(error)")
-            }
-        }
-    }
-    
-    // MARK: - Save Workout to HealthKit
-    private func saveWorkoutToHealthKit() {
-        guard let builder = builder else {
-            print("No workout builder available to save")
-            return
-        }
-        
-        #if DEBUG
-        print("=== WORKOUT MANAGER: saveWorkoutToHealthKit called ===")
-        #endif
-        
-        builder.finishWorkout { (workout, error) in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("Failed to save workout to HealthKit: \(error)")
-                    print("Error domain: \(error._domain)")
-                    print("Error code: \(error._code)")
-                    if let nsError = error as NSError? {
-                        print("Error user info: \(nsError.userInfo)")
-                    }
-                } else if let workout = workout {
-                    print("✅ Workout saved successfully to HealthKit")
-                    print("Workout UUID: \(workout.uuid)")
-                    print("Workout start date: \(workout.startDate)")
-                    print("Workout end date: \(workout.endDate)")
-                    print("Workout duration: \(workout.duration) seconds")
-                    print("Workout activity type: \(workout.workoutActivityType.rawValue)")
-                    
-                    // The workout is now saved to the Fitness app and Health app
-                    // Users can see it in their Activity/Fitness app on iPhone
-                } else {
-                    print("Workout finished but no workout object returned")
-                }
             }
         }
     }
@@ -278,9 +220,10 @@ class WorkoutManager: NSObject, ObservableObject {
         if let session = session {
             if session.state == .running || session.state == .paused || session.state == .stopped {
 
-                // If the State is stopped, then we need to end the session and save the workout to Activity app
                 if session.state == .stopped {
-                    handleWorkoutEnding();
+                    // Discard directly here — handleWorkoutEnding is already guarded
+                    // but call discard explicitly to be safe when state is already stopped
+                    builder?.discardWorkout()
                 }
 
                 #if DEBUG

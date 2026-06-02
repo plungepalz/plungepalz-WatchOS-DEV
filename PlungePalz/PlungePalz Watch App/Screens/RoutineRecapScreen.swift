@@ -29,35 +29,63 @@ struct RoutineRecapScreen: View {
         return 1 + r.routineList.count  // page 0 = summary, pages 1..N = per step
     }
 
+    private var currentRecapStep: RoutineStepModel? {
+        guard let routine = routine, pageIndex > 0 else { return nil }
+        let stepIndex = pageIndex - 1
+        guard routine.routineList.indices.contains(stepIndex) else { return nil }
+        return routine.routineList[stepIndex]
+    }
+
     // MARK: - Body
 
     var body: some View {
         let maxPage = max(0, totalPages - 1)
 
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                Color.black.ignoresSafeArea()
 
-            HStack(spacing: 0) {
-                // Left dot navigator
-                VStack(spacing: 6) {
-                    ForEach(0..<totalPages, id: \.self) { i in
-                        Circle()
-                            .fill(i == pageIndex ? Color.white : Color.gray.opacity(0.4))
-                            .frame(width: i == pageIndex ? 8 : 6, height: i == pageIndex ? 8 : 6)
+                HStack(spacing: 0) {
+                    // Left dot navigator
+                    VStack(spacing: 6) {
+                        ForEach(0..<totalPages, id: \.self) { i in
+                            Circle()
+                                .fill(i == pageIndex ? Color.white : Color.gray.opacity(0.4))
+                                .frame(width: i == pageIndex ? 8 : 6, height: i == pageIndex ? 8 : 6)
+                        }
                     }
-                }
-                .frame(width: 14)
-                .padding(.leading, 4)
+                    .frame(width: 14)
+                    .padding(.leading, 4)
 
-                // Page content
-                Group {
-                    if pageIndex == 0 {
-                        summaryPage
-                    } else {
-                        stepPage(index: pageIndex - 1)
+                    // Page content
+                    Group {
+                        if pageIndex == 0 {
+                            summaryPage
+                        } else {
+                            stepPage(index: pageIndex - 1)
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: geo.size.width, height: geo.size.height)
+
+                // Screen-level overlay, like the stop/pause button on RoutineTransitionScreen.
+                if let currentRecapStep {
+                    VStack {
+                        HStack {
+                            stepCircleBadge(stepNumber: currentRecapStep.step)
+                                .padding(.top, WatchGlobalUIConfig.RoutineRecapScreen.stepCircleTopOffset(for: screenSize))
+                                .padding(.leading, WatchGlobalUIConfig.RoutineRecapScreen.stepCircleLeadingOffset(for: screenSize))
+
+                            Spacer()
+                        }
+
+                        Spacer()
+                    }
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                }
             }
         }
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
@@ -161,7 +189,6 @@ struct RoutineRecapScreen: View {
         let statusText: String
         let statusColor: Color
 
-        // Map your exact string statuses to UI representation
         if result?.status == "Saved" {
             statusText = "Saved"
             statusColor = .green
@@ -174,35 +201,17 @@ struct RoutineRecapScreen: View {
         }
 
         return VStack(spacing: 8) {
-            // Row 1: Step Circle + Icon + Name (Spanning Full Horizontal Width)
-            HStack(spacing: 8) {
-                // Step Circle
-                ZStack {
-                    Circle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(
-                            width: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize),
-                            height: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize)
-                        )
-                    Text("\(step.step)")
-                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.stepFontSize(for: screenSize), weight: .bold))
-                        .foregroundStyle(.white)
-                }
-
-                // Icon + Activity Name
-                HStack(spacing: 4) {
-                    Image(systemName: sfSymbol)
-                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.modalityTopRowIconSize(for: screenSize)))
-                    Text(safeActivityType)
-                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.modalityTopRowFontSize(for: screenSize), weight: .bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-                .foregroundStyle(color)
-
-                Spacer()
+            // Row 1: Icon + Activity Name (Centered since circle was moved out)
+            HStack(spacing: 4) {
+                Image(systemName: sfSymbol)
+                    .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.modalityTopRowIconSize(for: screenSize)))
+                Text(safeActivityType)
+                    .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.modalityTopRowFontSize(for: screenSize), weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .padding(.horizontal, 4)
+            .foregroundStyle(color)
+            .padding(.top, 12) // Added top padding to balance layout with absolute circle
 
             Divider()
 
@@ -310,36 +319,17 @@ struct RoutineRecapScreen: View {
 
     // MARK: - Transition Step Page
     private func transitionStepPage(step: RoutineStepModel) -> some View {
-        return VStack(spacing: 16) {
+        return VStack(spacing: 12) {
 
-            // Top row: Step in circle | Icon | "Transition"
-            HStack(spacing: 8) {
-                // Step Circle
-                ZStack {
-                    Circle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(
-                            width: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize),
-                            height: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize)
-                        )
-                    Text("\(step.step)")
-                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.stepFontSize(for: screenSize), weight: .bold))
-                        .foregroundStyle(.white)
-                }
-
-                // Green Icon & Text
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.right.circle.fill")
-                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.transitionIconSize(for: screenSize)))
-                    Text("Transition")
-                        .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.transitionFontSize(for: screenSize), weight: .bold))
-                }
-                .foregroundStyle(.green)
-
-                Spacer()
+            // Top row: Icon | "Transition"
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.transitionIconSize(for: screenSize)))
+                Text("Transition")
+                    .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.transitionFontSize(for: screenSize), weight: .bold))
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 16)
+            .foregroundStyle(.green)
+            .padding(.top, 24) // Added padding to clear top corner circle
 
             // Step Nickname
             let nickname = step.stepNickname ?? ""
@@ -352,7 +342,7 @@ struct RoutineRecapScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 8)
 
-            Spacer()
+            //Spacer()
 
             // Home Button
             Button(action: {
@@ -368,6 +358,17 @@ struct RoutineRecapScreen: View {
     }
 
     // MARK: - Helpers
+
+    private func stepCircleBadge(stepNumber: Int) -> some View {
+        Text("\(stepNumber)")
+            .font(.system(size: WatchGlobalUIConfig.RoutineRecapScreen.stepFontSize(for: screenSize), weight: .bold))
+            .foregroundStyle(.white)
+            .frame(
+                width: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize),
+                height: WatchGlobalUIConfig.RoutineRecapScreen.stepCircleSize(for: screenSize)
+            )
+            .background(Circle().fill(Color.gray.opacity(0.3)))
+    }
 
     private func getSFSymbol(for type: String) -> String {
         switch type {
@@ -414,7 +415,6 @@ struct RoutineRecapScreen: View {
         }
         return String(format: "%.1f°F", f)
     }
-
 }
 
 #Preview {

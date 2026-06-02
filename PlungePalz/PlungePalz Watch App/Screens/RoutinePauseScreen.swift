@@ -109,7 +109,7 @@ struct RoutinePauseScreen: View {
                                 action: handleSkip
                             )
                         }
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, 0)
                         .padding(.bottom, 16)
                     }
                 }
