@@ -130,6 +130,7 @@ struct RoutineGetReadyScreen: View {
     private func navigateToStep() {
         guard !didNavigate else { return }
         didNavigate = true
+        WatchHaptics.playGetReadyComplete()
         stopTimer()
         backgroundTimerManager.stopGetReadyTimer()
         sessionDataManager.currentRoutineStepPlannedStartDate = plannedStepStartDate ?? Date()

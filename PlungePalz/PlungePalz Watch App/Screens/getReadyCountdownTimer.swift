@@ -127,6 +127,7 @@ struct GetReadyCountdownTimer: View {
     private func navigateToCorrectScreen() {
         guard !didNavigate else { return }
         didNavigate = true
+        WatchHaptics.playGetReadyComplete()
         stopTimer()
         backgroundTimerManager.stopGetReadyTimer()
         sessionDataManager.activityStartDate = plannedActivityStartDate ?? Date()

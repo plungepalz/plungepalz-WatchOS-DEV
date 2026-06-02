@@ -216,18 +216,15 @@ class WorkoutManager: NSObject, ObservableObject {
         //     session.stopActivity(with: Date())
         // }
 
-        // CRITICAL: Properly end HealthKit session
+        // CRITICAL: Properly end HealthKit session (discard BEFORE ending so it does not get saved to Apple Fitness)
         if let session = session {
             if session.state == .running || session.state == .paused || session.state == .stopped {
 
-                if session.state == .stopped {
-                    // Discard directly here — handleWorkoutEnding is already guarded
-                    // but call discard explicitly to be safe when state is already stopped
-                    builder?.discardWorkout()
-                }
+                // Always discard BEFORE ending — covers running, paused, and stopped states
+                builder?.discardWorkout()
 
                 #if DEBUG
-                print("=== WORKOUT MANAGER: Trying to end HealthKit session... ===")
+                print("=== WORKOUT MANAGER: Discarding workout before ending session ===")
                 #endif
 
                 // End the session entirely
