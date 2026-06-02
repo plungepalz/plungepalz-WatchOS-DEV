@@ -11,6 +11,7 @@ import Combine
 struct GetReadyCountdownTimer: View {
     @ObservedObject var navigationManager: NavigationManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var workoutManager: WorkoutManager
     
     @StateObject private var screenManager = WatchScreenManager()
     @StateObject private var backgroundTimerManager = BackgroundTimerManager.shared
@@ -113,6 +114,11 @@ struct GetReadyCountdownTimer: View {
             }
             
             startTimer()
+
+            // Start temporary workout to keep app alive and DO NOT enable Water Lock
+            if !workoutManager.isActive {
+                workoutManager.startWorkout(startDate: Date())
+            }
         }
         .onDisappear {
             stopTimer()
@@ -131,6 +137,9 @@ struct GetReadyCountdownTimer: View {
         stopTimer()
         backgroundTimerManager.stopGetReadyTimer()
         sessionDataManager.activityStartDate = plannedActivityStartDate ?? Date()
+
+        // Discard the temporary Get Ready workout — next screen starts its own
+        workoutManager.discardWorkout()
 
         #if DEBUG
         print("🎯 GetReadyCountdownTimer: Timer completed, routing based on timer mode for: \(sessionDataManager.activityType)")
@@ -152,6 +161,9 @@ struct GetReadyCountdownTimer: View {
     private func handleCancelButtonTap() {
         // Set cancel flag to prevent automatic navigation
         isCancelled = true
+
+        // Discard the temporary Get Ready workout — next screen starts its own
+        workoutManager.discardWorkout()
         
         // Stop background timer
         backgroundTimerManager.stopGetReadyTimer()

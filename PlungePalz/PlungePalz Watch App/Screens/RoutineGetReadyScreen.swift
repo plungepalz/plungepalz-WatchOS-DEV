@@ -13,6 +13,7 @@ struct RoutineGetReadyScreen: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @StateObject private var screenManager = WatchScreenManager()
     @StateObject private var backgroundTimerManager = BackgroundTimerManager.shared
+    @EnvironmentObject var workoutManager: WorkoutManager
 
     @State private var countdown: Double = 5.0
     @State private var totalTime: Double = 5.0
@@ -98,6 +99,10 @@ struct RoutineGetReadyScreen: View {
                 }
             }
             startTimer()
+            // Start temporary workout to keep app alive and DO NOT enable Water Lock
+            if !workoutManager.isActive {
+                workoutManager.startWorkout(startDate: Date())
+            }
         }
         .onDisappear {
             stopTimer()
@@ -135,6 +140,9 @@ struct RoutineGetReadyScreen: View {
         backgroundTimerManager.stopGetReadyTimer()
         sessionDataManager.currentRoutineStepPlannedStartDate = plannedStepStartDate ?? Date()
 
+        // Discard the temporary Get Ready workout — next screen starts its own
+        workoutManager.discardWorkout()
+
         guard let step = sessionDataManager.currentRoutineStep else {
             navigationManager.goToHome()
             return
@@ -147,6 +155,7 @@ struct RoutineGetReadyScreen: View {
     }
 
     private func handleBack() {
+        workoutManager.discardWorkout()
         isCancelled = true
         backgroundTimerManager.stopGetReadyTimer()
         sessionDataManager.currentRoutineStepPlannedStartDate = nil
