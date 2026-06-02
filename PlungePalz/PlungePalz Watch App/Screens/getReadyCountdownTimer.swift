@@ -87,7 +87,6 @@ struct GetReadyCountdownTimer: View {
         }
         .environment(\.watchScreenSize, screenManager.currentScreenSize)
         .onAppear {
-            // Get get ready timer value from UserDefaults, default to 5 seconds if not found
             let getReadySeconds = UserDefaults.standard.integer(forKey: "get_ready_timer_seconds")
             let finalGetReadySeconds = getReadySeconds > 0 ? getReadySeconds : 5
 
@@ -100,25 +99,19 @@ struct GetReadyCountdownTimer: View {
             timerStartDate = startDate
             plannedActivityStartDate = startDate.addingTimeInterval(Double(finalGetReadySeconds))
 
-            #if DEBUG
-            print("GetReadyCountdownTimer using stored value: \(finalGetReadySeconds) seconds")
-            print("Current activity type: \(sessionDataManager.activityType)")
-            #endif
-
-            // Start background timer to ensure countdown continues even if screen sleeps
+            // Then start background and UI timers
             backgroundTimerManager.startGetReadyTimer(duration: Double(finalGetReadySeconds)) {
-                // This completion will be called when timer completes (even in background)
                 DispatchQueue.main.async {
                     self.navigateToCorrectScreen()
                 }
             }
-            
-            startTimer()
 
-            // Start temporary workout to keep app alive and DO NOT enable Water Lock
+            // Start workout FIRST so session is active before timers begin
             if !workoutManager.isActive {
                 workoutManager.startWorkout(startDate: Date())
             }
+
+            startTimer()
         }
         .onDisappear {
             stopTimer()
